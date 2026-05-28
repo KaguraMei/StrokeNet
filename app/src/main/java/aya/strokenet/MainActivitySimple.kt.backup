@@ -1,0 +1,73 @@
+package com.ec.strokenet
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ec.strokenet.ui.theme.StrokeNetTheme
+
+/**
+ * 简化版 MainActivity - 用于测试基础功能
+ * 如果主版本崩溃，可以用这个替换 MainActivity.kt 来测试
+ */
+class MainActivitySimple : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            StrokeNetTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color(0xFFF0F4F8)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "STROKE.NET",
+                            fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 42.sp,
+                            color = Color(0xFF1332A6)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            text = "APP IS RUNNING",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 16.sp,
+                            color = Color(0xFF0F0F0F)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(32.dp))
+                        
+                        Button(
+                            onClick = { /* TODO */ },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF1332A6)
+                            )
+                        ) {
+                            Text("TEST BUTTON")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
