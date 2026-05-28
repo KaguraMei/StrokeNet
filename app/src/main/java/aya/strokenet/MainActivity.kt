@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -92,64 +93,37 @@ class MainActivity : ComponentActivity() {
         intent?.let {
             val action = it.getStringExtra("action") ?: return
             
-            when (action) {
-                "start", "thrust" -> {
-                    val depth = it.getIntExtra("depth", 36)
-                    val extend = it.getIntExtra("extend", 8)
-                    val retract = it.getIntExtra("retract", 8)
-                    
-                    bleAdvertiser.advertise(
-                        action = action,
-                        depth = depth,
-                        extendSpeed = extend,
-                        retractSpeed = retract,
-                        onSuccess = {
-                            runOnUiThread {
-                                Toast.makeText(this, "指令已发送: $action", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        onFailure = { errorCode ->
-                            runOnUiThread {
-                                Toast.makeText(this, "发送失败: $errorCode", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    )
-                }
-                "strength" -> {
-                    val value = it.getIntExtra("value", 50)
-                    bleAdvertiser.advertise(
-                        action = action,
-                        strength = value,
-                        onSuccess = {
-                            runOnUiThread {
-                                Toast.makeText(this, "强度已设置: $value", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    )
-                }
-                "temp" -> {
-                    val value = it.getIntExtra("value", 30)
-                    bleAdvertiser.advertise(
-                        action = action,
-                        temp = value,
-                        onSuccess = {
-                            runOnUiThread {
-                                Toast.makeText(this, "温度已设置: $value", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    )
-                }
-                "stop" -> {
-                    bleAdvertiser.advertise(
-                        action = action,
-                        onSuccess = {
-                            runOnUiThread {
-                                Toast.makeText(this, "已停止", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    )
+            // 启动前台服务来处理所有指令
+            val serviceIntent = Intent(this, BleService::class.java).apply {
+                putExtra("action", action)
+                
+                when (action) {
+                    "start", "thrust" -> {
+                        putExtra(BleService.EXTRA_DEPTH, it.getIntExtra("depth", 36))
+                        putExtra(BleService.EXTRA_EXTEND, it.getIntExtra("extend", 8))
+                        putExtra(BleService.EXTRA_RETRACT, it.getIntExtra("retract", 8))
+                    }
+                    "strength", "temp" -> {
+                        putExtra(BleService.EXTRA_VALUE, it.getIntExtra("value", 50))
+                    }
                 }
             }
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+            
+            val message = when (action) {
+                "start" -> "启动推拉"
+                "thrust" -> "调节参数"
+                "strength" -> "设置强度"
+                "temp" -> "设置温度"
+                "stop" -> "停止运行"
+                else -> "指令已发送"
+            }
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }
     }
     

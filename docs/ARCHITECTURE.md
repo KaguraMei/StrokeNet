@@ -3,9 +3,10 @@
 ## 📁 项目结构
 
 ```
-app/src/main/java/com/ec/strokenet/
+app/src/main/java/aya/strokenet/
 ├── MainActivity.kt                      # 主入口 Activity
-├── BleAdvertiser.kt                     # BLE 广播管理器
+├── BleAdvertiser.kt                     # BLE 广播工具类
+├── BleService.kt                        # 前台服务（重试+通知）
 │
 ├── data/                                # 数据层
 │   └── model/                           # 数据模型
@@ -41,6 +42,9 @@ app/src/main/java/com/ec/strokenet/
 │         Presentation Layer          │  UI 层
 │  (Screens, Components, Navigation)  │
 ├─────────────────────────────────────┤
+│          Service Layer              │  服务层
+│  (BleService - 前台服务+重试逻辑)    │
+├─────────────────────────────────────┤
 │          Business Logic             │  业务逻辑层
 │       (BleAdvertiser)               │
 ├─────────────────────────────────────┤
@@ -56,8 +60,17 @@ app/src/main/java/com/ec/strokenet/
 - **功能**：
   - 权限请求和管理
   - 蓝牙状态检查
-  - Intent 参数处理
-  - 初始化 BleAdvertiser
+  - Intent 参数处理（MCP 调用入口）
+  - 启动 BleService
+
+#### BleService.kt
+- **职责**：前台服务，确保指令可靠送达
+- **功能**：
+  - 前台服务（通知栏显示，系统不杀）
+  - 重试逻辑（失败时最多重试 2 次）
+  - 通知更新（显示发送状态）
+  - 后台运行能力
+  - 自动停止（任务完成后）
 
 #### BleAdvertiser.kt
 - **职责**：BLE 广播核心逻辑
@@ -122,23 +135,33 @@ app/src/main/java/com/ec/strokenet/
 ### 1. 用户操作流程
 
 ```
-用户操作 → Screen → BleAdvertiser → BLE 广播 → 设备响应
-   ↓
-状态更新 → UI 刷新
+用户操作 → Screen → 启动 BleService → BleAdvertiser → BLE 广播 → 设备响应
+                         ↓
+                    通知栏显示状态
+                         ↓
+                    重试（如果失败）
+                         ↓
+                    自动停止服务
 ```
 
-### 2. Intent 调用流程
+### 2. Intent 调用流程（MCP）
 
 ```
-外部 Intent → MainActivity.handleIntent() → BleAdvertiser → BLE 广播
+外部 Intent → MainActivity.handleIntent() → 启动 BleService
                                                 ↓
-                                            Toast 反馈
+                                          BleAdvertiser
+                                                ↓
+                                          BLE 广播
+                                                ↓
+                                          通知栏反馈
 ```
 
 ### 3. 预设模式流程
 
 ```
-选择预设 → PresetsScreen → 确认对话框 → BleAdvertiser → 应用参数
+选择预设 → PresetsScreen → 确认对话框 → 启动 BleService → 应用参数
+                                              ↓
+                                        依次发送：推拉、强度、温度
 ```
 
 ## 🎨 UI 设计原则

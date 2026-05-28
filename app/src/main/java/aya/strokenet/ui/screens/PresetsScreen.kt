@@ -1,5 +1,7 @@
 package aya.strokenet.ui.screens
 
+import android.content.Intent
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import aya.strokenet.BleAdvertiser
+import aya.strokenet.BleService
 import aya.strokenet.data.model.Preset
 import aya.strokenet.ui.theme.*
 import aya.strokenet.ui.components.GlassPanel
@@ -94,45 +97,53 @@ fun PresetsScreen(
                             return@Button
                         }
                         
-                        // 发送启动指令
+                        // 通过 Service 发送启动指令
                         selectedPreset?.let { preset ->
-                            bleAdvertiser?.advertise(
-                                action = "start",
-                                depth = preset.params.depth,
-                                extendSpeed = preset.params.extendSpeed,
-                                retractSpeed = preset.params.retractSpeed,
-                                onSuccess = {
-                                    Toast.makeText(
-                                        context,
-                                        "已启动「${preset.name}」模式",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                onFailure = { errorCode ->
-                                    val message = when (errorCode) {
-                                        -3 -> "权限不足，请在设置中授予蓝牙权限"
-                                        -4 -> "蓝牙未启用"
-                                        else -> "启动失败: $errorCode"
-                                    }
-                                    Toast.makeText(
-                                        context,
-                                        message,
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                            // 1. 发送推拉启动指令
+                            val startIntent = Intent(context, BleService::class.java).apply {
+                                putExtra("action", "start")
+                                putExtra(BleService.EXTRA_DEPTH, preset.params.depth)
+                                putExtra(BleService.EXTRA_EXTEND, preset.params.extendSpeed)
+                                putExtra(BleService.EXTRA_RETRACT, preset.params.retractSpeed)
+                            }
+                            
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                context.startForegroundService(startIntent)
+                            } else {
+                                context.startService(startIntent)
+                            }
+                            
+                            // 2. 延迟发送强度指令（等待第一个完成）
+                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                val strengthIntent = Intent(context, BleService::class.java).apply {
+                                    putExtra("action", "strength")
+                                    putExtra(BleService.EXTRA_VALUE, preset.params.strength)
                                 }
-                            )
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    context.startForegroundService(strengthIntent)
+                                } else {
+                                    context.startService(strengthIntent)
+                                }
+                            }, 1000)
                             
-                            // 设置强度
-                            bleAdvertiser?.advertise(
-                                action = "strength",
-                                strength = preset.params.strength
-                            )
+                            // 3. 延迟发送温度指令
+                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                val tempIntent = Intent(context, BleService::class.java).apply {
+                                    putExtra("action", "temp")
+                                    putExtra(BleService.EXTRA_VALUE, preset.params.temp)
+                                }
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    context.startForegroundService(tempIntent)
+                                } else {
+                                    context.startService(tempIntent)
+                                }
+                            }, 2000)
                             
-                            // 设置温度
-                            bleAdvertiser?.advertise(
-                                action = "temp",
-                                temp = preset.params.temp
-                            )
+                            Toast.makeText(
+                                context,
+                                "正在启动「${preset.name}」模式",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = iOSBlue)
@@ -196,28 +207,22 @@ fun PresetsScreen(
                     return@Button
                 }
                 
-                bleAdvertiser?.advertise(
-                    action = "stop",
-                    onSuccess = {
-                        Toast.makeText(
-                            context,
-                            "已停止设备",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    },
-                    onFailure = { errorCode ->
-                        val message = when (errorCode) {
-                            -3 -> "权限不足，请在设置中授予蓝牙权限"
-                            -4 -> "蓝牙未启用"
-                            else -> "停止失败: $errorCode"
-                        }
-                        Toast.makeText(
-                            context,
-                            message,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                )
+                // 通过 Service 发送停止指令
+                val stopIntent = Intent(context, BleService::class.java).apply {
+                    putExtra("action", "stop")
+                }
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(stopIntent)
+                } else {
+                    context.startService(stopIntent)
+                }
+                
+                Toast.makeText(
+                    context,
+                    "停止设备",
+                    Toast.LENGTH_SHORT
+                ).show()
             },
             modifier = Modifier
                 .fillMaxWidth()

@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import aya.strokenet.BleAdvertiser
+import aya.strokenet.BleService
 import aya.strokenet.data.model.ControlParams
 import aya.strokenet.ui.theme.*
 import aya.strokenet.ui.components.GlassPanel
@@ -183,7 +185,16 @@ fun ControlScreen(
                 range = ControlParams.STRENGTH_MIN.toFloat()..ControlParams.STRENGTH_MAX.toFloat(),
                 onValueChange = {
                     strength = it
-                    bleAdvertiser?.advertise(action = "strength", strength = it.toInt())
+                    // 通过 Service 发送强度指令
+                    val serviceIntent = Intent(context, BleService::class.java).apply {
+                        putExtra("action", "strength")
+                        putExtra(BleService.EXTRA_VALUE, it.toInt())
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(serviceIntent)
+                    } else {
+                        context.startService(serviceIntent)
+                    }
                 }
             )
 
@@ -199,7 +210,16 @@ fun ControlScreen(
                 unit = "°C",
                 onValueChange = {
                     temp = it
-                    bleAdvertiser?.advertise(action = "temp", temp = it.toInt())
+                    // 通过 Service 发送温度指令
+                    val serviceIntent = Intent(context, BleService::class.java).apply {
+                        putExtra("action", "temp")
+                        putExtra(BleService.EXTRA_VALUE, it.toInt())
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(serviceIntent)
+                    } else {
+                        context.startService(serviceIntent)
+                    }
                 }
             )
         }
@@ -227,60 +247,27 @@ fun ControlScreen(
                         return@Button
                     }
                     
-                    if (isRunning) {
-                        bleAdvertiser?.advertise(
-                            action = "thrust",
-                            depth = depth.toInt(),
-                            extendSpeed = extendSpeed.toInt(),
-                            retractSpeed = retractSpeed.toInt(),
-                            onSuccess = {
-                                android.widget.Toast.makeText(
-                                    context,
-                                    "参数已更新",
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            },
-                            onFailure = { errorCode ->
-                                val message = when (errorCode) {
-                                    -3 -> "权限不足，请在设置中授予蓝牙权限"
-                                    -4 -> "蓝牙未启用"
-                                    else -> "发送失败: $errorCode"
-                                }
-                                android.widget.Toast.makeText(
-                                    context,
-                                    message,
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        )
-                    } else {
-                        bleAdvertiser?.advertise(
-                            action = "start",
-                            depth = depth.toInt(),
-                            extendSpeed = extendSpeed.toInt(),
-                            retractSpeed = retractSpeed.toInt(),
-                            onSuccess = {
-                                isRunning = true
-                                android.widget.Toast.makeText(
-                                    context,
-                                    "设备已启动",
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            },
-                            onFailure = { errorCode ->
-                                val message = when (errorCode) {
-                                    -3 -> "权限不足，请在设置中授予蓝牙权限"
-                                    -4 -> "蓝牙未启用"
-                                    else -> "启动失败: $errorCode"
-                                }
-                                android.widget.Toast.makeText(
-                                    context,
-                                    message,
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        )
+                    // 通过 Service 发送指令
+                    val action = if (isRunning) "thrust" else "start"
+                    val serviceIntent = Intent(context, BleService::class.java).apply {
+                        putExtra("action", action)
+                        putExtra(BleService.EXTRA_DEPTH, depth.toInt())
+                        putExtra(BleService.EXTRA_EXTEND, extendSpeed.toInt())
+                        putExtra(BleService.EXTRA_RETRACT, retractSpeed.toInt())
                     }
+                    
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(serviceIntent)
+                    } else {
+                        context.startService(serviceIntent)
+                    }
+                    
+                    isRunning = true
+                    android.widget.Toast.makeText(
+                        context,
+                        if (action == "start") "启动设备" else "更新参数",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
                 },
                 modifier = Modifier
                     .weight(1f)
@@ -303,29 +290,23 @@ fun ControlScreen(
                         return@Button
                     }
                     
-                    bleAdvertiser?.advertise(
-                        action = "stop",
-                        onSuccess = {
-                            isRunning = false
-                            android.widget.Toast.makeText(
-                                context,
-                                "设备已停止",
-                                android.widget.Toast.LENGTH_SHORT
-                            ).show()
-                        },
-                        onFailure = { errorCode ->
-                            val message = when (errorCode) {
-                                -3 -> "权限不足，请在设置中授予蓝牙权限"
-                                -4 -> "蓝牙未启用"
-                                else -> "停止失败: $errorCode"
-                            }
-                            android.widget.Toast.makeText(
-                                context,
-                                message,
-                                android.widget.Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    )
+                    // 通过 Service 发送停止指令
+                    val serviceIntent = Intent(context, BleService::class.java).apply {
+                        putExtra("action", "stop")
+                    }
+                    
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(serviceIntent)
+                    } else {
+                        context.startService(serviceIntent)
+                    }
+                    
+                    isRunning = false
+                    android.widget.Toast.makeText(
+                        context,
+                        "停止设备",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
                 },
                 modifier = Modifier
                     .weight(1f)

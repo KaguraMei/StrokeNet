@@ -2,7 +2,7 @@
 
 > 📚 所有项目文档的导航和说明
 
-**最后更新**: 2026-05-28
+**最后更新**: 2026-05-29
 
 ---
 
@@ -15,7 +15,6 @@
 这是专为 AI Agent 设计的综合开发指南，整合了所有关键信息：
 - 项目概述和当前状态
 - 完整的技术架构
-- 设计系统详解
 - 核心功能说明
 - 开发指南和快速参考
 - 下一步工作清单
@@ -44,25 +43,206 @@
 
 | 文档 | 用途 | 推荐对象 | 优先级 |
 |------|------|---------|--------|
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | 架构设计说明 | 开发者 | ⭐⭐⭐ |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | 架构设计说明 | 开发者 | ⭐⭐⭐⭐ |
 | [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md) | 完整项目指南 | 开发者 | ⭐⭐⭐ |
-
-### 🎨 设计文档
-
-| 文档 | 用途 | 推荐对象 | 优先级 |
-|------|------|---------|--------|
-| [`DESIGN_IOS_GLASSMORPHISM.md`](DESIGN_IOS_GLASSMORPHISM.md) | iOS 玻璃拟态设计系统 | UI 开发者 | ⭐⭐⭐⭐⭐ |
-| [`DESIGN_CONSTRUCTIVISM.md`](DESIGN_CONSTRUCTIVISM.md) | 构成主义设计（已废弃） | 参考 | ⭐ |
-| [`UI_REDESIGN_SUMMARY.md`](UI_REDESIGN_SUMMARY.md) | UI 重构总结 | 了解历史 | ⭐⭐ |
 
 ### 🔧 开发文档
 
 | 文档 | 用途 | 推荐对象 | 优先级 |
 |------|------|---------|--------|
-| [`BUILD_GUIDE.md`](BUILD_GUIDE.md) | 构建和部署指南 | 开发者 | ⭐⭐⭐ |
+| [`SERVICE_INTEGRATION.md`](SERVICE_INTEGRATION.md) | BLE Service 集成说明 | 开发者 | ⭐⭐⭐⭐⭐ |
 | [`UUID_ENCODING.md`](UUID_ENCODING.md) | UUID 编码配置说明 | 核心开发者 | ⭐⭐⭐⭐⭐ |
-| [`DEBUG_TIPS.md`](DEBUG_TIPS.md) | 调试技巧 | 开发者 | ⭐⭐⭐ |
-| [`CRASH_FIX.md`](CRASH_FIX.md) | 崩溃修复记录 | 问题排查 | ⭐⭐ |
+| [`BUILD_GUIDE.md`](BUILD_GUIDE.md) | 构建和部署指南 | 开发者 | ⭐⭐⭐ |
+
+---
+
+## 📋 文档详细说明
+
+### 核心文档
+
+#### [`AI_AGENT_GUIDE.md`](AI_AGENT_GUIDE.md)
+**目标读者**: AI Agent  
+**内容**:
+- 项目概述和当前状态
+- 完整技术架构
+- BLE Service 集成
+- 核心功能详解
+- 文件结构说明
+- 开发指南和常见任务
+- 下一步工作清单
+- 快速参考和命令速查
+
+**何时阅读**: AI Agent 开始工作时的第一份文档
+
+---
+
+#### [`../README.md`](../README.md)
+**目标读者**: 所有人  
+**内容**:
+- 项目简介和特性
+- 快速开始（编译、安装、测试）
+- 文档导航
+- 项目结构
+- 控制协议说明
+- Intent 接口使用
+- MCP 服务集成
+- 前台服务特性
+
+**何时阅读**: 第一次接触项目时
+
+---
+
+### 技术文档
+
+#### [`SERVICE_INTEGRATION.md`](SERVICE_INTEGRATION.md)
+**目标读者**: 开发者  
+**内容**:
+- BLE Service 架构设计
+- 前台服务工作流程
+- 重试机制说明
+- 通知栏状态
+- 未来功能规划（自定义动作循环）
+
+**何时阅读**: 需要理解或修改 Service 层时
+
+---
+
+#### [`ARCHITECTURE.md`](ARCHITECTURE.md)
+**目标读者**: 开发者  
+**内容**:
+- 技术栈
+- 架构模式
+- 模块划分
+- 数据流
+- 依赖关系
+
+**何时阅读**: 需要理解整体架构时
+
+---
+
+#### [`UUID_ENCODING.md`](UUID_ENCODING.md)
+**目标读者**: 核心开发者  
+**内容**:
+- UUID 编码原理
+- 逆向方法
+- 参数映射
+- 编码示例
+- 调整步骤
+
+**何时阅读**: ⚠️ 必读！需要调整 BLE 广播编码时
+
+---
+
+#### [`BUILD_GUIDE.md`](BUILD_GUIDE.md)
+**目标读者**: 开发者  
+**内容**:
+- 环境配置
+- 编译步骤
+- 部署方法
+- 常见问题
+
+**何时阅读**: 第一次编译项目时
+
+---
+
+### 参考文档
+
+#### [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md)
+**目标读者**: 开发者  
+**内容**: 完整的项目指南
+
+**何时阅读**: 需要详细了解项目时（建议优先阅读 AI_AGENT_GUIDE.md）
+
+---
+
+#### [`QUICKSTART.md`](QUICKSTART.md)
+**目标读者**: 新手  
+**内容**: 快速上手指南
+
+**何时阅读**: 第一次使用时
+
+---
+
+## 🗺️ 阅读路径推荐
+
+### 路径 1: AI Agent 开发
+
+```
+1. AI_AGENT_GUIDE.md          (综合指南)
+2. SERVICE_INTEGRATION.md     (Service 架构)
+3. UUID_ENCODING.md           (UUID 编码)
+4. 开始开发
+```
+
+### 路径 2: 人类开发者入门
+
+```
+1. ../README.md               (项目介绍)
+2. QUICKSTART.md              (快速开始)
+3. BUILD_GUIDE.md             (编译部署)
+4. ARCHITECTURE.md            (架构理解)
+5. SERVICE_INTEGRATION.md     (Service 层)
+6. UUID_ENCODING.md           (核心功能)
+```
+
+### 路径 3: 快速修改
+
+```
+1. AI_AGENT_GUIDE.md          (快速参考)
+2. 相关具体文档
+```
+
+---
+
+## 📊 文档状态
+
+| 文档 | 状态 | 最后更新 |
+|------|------|---------|
+| `AI_AGENT_GUIDE.md` | ✅ 最新 | 2026-05-29 |
+| `README.md` | ✅ 最新 | 2026-05-29 |
+| `SERVICE_INTEGRATION.md` | ✅ 最新 | 2026-05-29 |
+| `UUID_ENCODING.md` | ✅ 最新 | 2026-05-28 |
+| `ARCHITECTURE.md` | ✅ 最新 | 2026-05-29 |
+| `PROJECT_GUIDE.md` | ⚠️ 需更新 | - |
+| `BUILD_GUIDE.md` | ✅ 有效 | - |
+| `QUICKSTART.md` | ✅ 有效 | - |
+
+---
+
+## 🔄 文档维护
+
+### 更新原则
+
+1. **重大变更必须更新文档**
+2. **优先更新 AI_AGENT_GUIDE.md**
+3. **保持文档同步**
+4. **标注更新日期**
+
+### 需要更新的情况
+
+- ✅ 添加新功能
+- ✅ 修改架构
+- ✅ 修复重要问题
+- ✅ 调整 UUID 编码
+- ✅ 重构代码
+
+### 文档优先级
+
+1. **AI_AGENT_GUIDE.md** - 最高优先级
+2. **README.md** - 高优先级
+3. **SERVICE_INTEGRATION.md** - 高优先级
+4. **UUID_ENCODING.md** - 高优先级
+5. 其他文档 - 按需更新
+
+---
+
+**维护**: 请在更新文档后同步更新本索引  
+**版本**: 2.0.0  
+**最后更新**: 2026-05-29
+
+---
+
+*本索引由 AI Agent 生成和维护*
 
 ---
 
