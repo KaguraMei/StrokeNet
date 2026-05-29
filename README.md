@@ -388,6 +388,20 @@ bash test_mcp_service.sh
 
 MIT License - 详见 [LICENSE](LICENSE)
 
+## 🙏 致谢
+
+本项目的 BLE 逆向工程和 MCP 集成方案受到以下教程的启发：
+
+**[用 AI 远程控制你的 Cachito 大秀炮机：BLE 逆向 + MCP 全链路教程](https://claude.ai/public/artifacts/921eda06-e567-4cde-85af-8cde831a608f)**
+
+该教程详细讲解了：
+- 🔍 如何使用 nRF Connect Scanner 逆向 BLE 广播协议
+- 📡 BLE Advertiser 模式与传统 GATT 连接的区别
+- 🤖 通过 MCP 让 AI 控制智能设备的完整链路
+- 🚀 Termux + Cloudflared 实现远程访问
+
+感谢作者分享的宝贵经验，为本项目提供了核心技术思路。
+
 ---
 
 **项目状态**: ✅ 核心功能完成，等待 UUID 编码调整  
