@@ -44,6 +44,11 @@ fun ControlScreen(
     var isBluetoothEnabled by remember { mutableStateOf(true) }
     
     val context = LocalContext.current
+    
+    // 用于防抖的 Handler
+    val handler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
+    var strengthRunnable by remember { mutableStateOf<Runnable?>(null) }
+    var tempRunnable by remember { mutableStateOf<Runnable?>(null) }
 
     // 初始检查蓝牙状态
     LaunchedEffect(Unit) {
@@ -185,16 +190,24 @@ fun ControlScreen(
                 range = ControlParams.STRENGTH_MIN.toFloat()..ControlParams.STRENGTH_MAX.toFloat(),
                 onValueChange = {
                     strength = it
-                    // 通过 Service 发送强度指令
-                    val serviceIntent = Intent(context, BleService::class.java).apply {
-                        putExtra("action", "strength")
-                        putExtra(BleService.EXTRA_VALUE, it.toInt())
+                    
+                    // 取消之前的延迟任务
+                    strengthRunnable?.let { runnable -> handler.removeCallbacks(runnable) }
+                    
+                    // 创建新的延迟任务（500ms 后发送）
+                    val newRunnable = Runnable {
+                        val serviceIntent = Intent(context, BleService::class.java).apply {
+                            putExtra("action", "strength")
+                            putExtra(BleService.EXTRA_VALUE, it.toInt())
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            context.startForegroundService(serviceIntent)
+                        } else {
+                            context.startService(serviceIntent)
+                        }
                     }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(serviceIntent)
-                    } else {
-                        context.startService(serviceIntent)
-                    }
+                    strengthRunnable = newRunnable
+                    handler.postDelayed(newRunnable, 500) // 500ms 防抖
                 }
             )
 
@@ -210,16 +223,24 @@ fun ControlScreen(
                 unit = "°C",
                 onValueChange = {
                     temp = it
-                    // 通过 Service 发送温度指令
-                    val serviceIntent = Intent(context, BleService::class.java).apply {
-                        putExtra("action", "temp")
-                        putExtra(BleService.EXTRA_VALUE, it.toInt())
+                    
+                    // 取消之前的延迟任务
+                    tempRunnable?.let { runnable -> handler.removeCallbacks(runnable) }
+                    
+                    // 创建新的延迟任务（500ms 后发送）
+                    val newRunnable = Runnable {
+                        val serviceIntent = Intent(context, BleService::class.java).apply {
+                            putExtra("action", "temp")
+                            putExtra(BleService.EXTRA_VALUE, it.toInt())
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            context.startForegroundService(serviceIntent)
+                        } else {
+                            context.startService(serviceIntent)
+                        }
                     }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(serviceIntent)
-                    } else {
-                        context.startService(serviceIntent)
-                    }
+                    tempRunnable = newRunnable
+                    handler.postDelayed(newRunnable, 500) // 500ms 防抖
                 }
             )
         }
@@ -323,6 +344,14 @@ fun ControlScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp)) // 底部留白
+    }
+    
+    // 清理 Handler 回调
+    DisposableEffect(Unit) {
+        onDispose {
+            strengthRunnable?.let { handler.removeCallbacks(it) }
+            tempRunnable?.let { handler.removeCallbacks(it) }
+        }
     }
 }
 

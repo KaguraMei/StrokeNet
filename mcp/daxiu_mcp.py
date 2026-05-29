@@ -46,4 +46,10 @@ def daxiu_stop() -> str:
     return "已停止"
 
 if __name__ == "__main__":
-    mcp.run(transport="sse", host="0.0.0.0", port=3459)
+    # 方案1: 适配 FastMCP 2.14+ (当前版本)
+    # 使用 stdio transport (标准输入输出，最稳定)
+    mcp.run()
+    
+    # 方案2: 如果需要 HTTP/SSE，降级到 FastMCP 1.x
+    # pip install fastmcp==1.4.0
+    # mcp.run(transport="sse", host="0.0.0.0", port=3459)

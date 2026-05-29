@@ -39,6 +39,15 @@ class BleService : Service() {
     
     private lateinit var bleAdvertiser: BleAdvertiser
     private val handler = Handler(Looper.getMainLooper())
+    private var isServiceActive = false // 跟踪服务是否处于活动状态
+    
+    // 维护当前设备状态
+    private var currentDepth = 36
+    private var currentExtend = 8
+    private var currentRetract = 8
+    private var currentStrength = 50
+    private var currentTemp = 30
+    private var isRunning = false
     
     override fun onCreate() {
         super.onCreate()
@@ -48,12 +57,16 @@ class BleService : Service() {
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // 启动前台服务
-        startForeground(NOTIFICATION_ID, buildNotification("准备发送指令..."))
+        // 首次启动或重新启动前台服务
+        if (!isServiceActive) {
+            startForeground(NOTIFICATION_ID, buildNotification(buildFullStatusText()))
+            isServiceActive = true
+            Log.d(TAG, "Foreground service started")
+        }
         
         intent?.let { handleIntent(it) }
         
-        return START_NOT_STICKY // 任务完成后不需要重启
+        return START_STICKY // 改为 STICKY，保持服务运行
     }
     
     private fun handleIntent(intent: Intent) {
@@ -61,43 +74,59 @@ class BleService : Service() {
         
         Log.d(TAG, "Received action: $action")
         
+        // 特殊处理停止指令
+        if (action == ACTION_STOP) {
+            isRunning = false
+            sendWithRetry(
+                action = action,
+                description = "停止",
+                shouldStopService = true // 停止后关闭服务
+            )
+            return
+        }
+        
         when (action) {
             ACTION_START, ACTION_THRUST -> {
                 val depth = intent.getIntExtra(EXTRA_DEPTH, 36)
                 val extend = intent.getIntExtra(EXTRA_EXTEND, 8)
                 val retract = intent.getIntExtra(EXTRA_RETRACT, 8)
                 
+                // 更新状态
+                currentDepth = depth
+                currentExtend = extend
+                currentRetract = retract
+                if (action == ACTION_START) {
+                    isRunning = true
+                }
+                
                 sendWithRetry(
                     action = action,
                     depth = depth,
                     extendSpeed = extend,
                     retractSpeed = retract,
-                    description = "推拉: 深度=$depth 伸=$extend 缩=$retract"
+                    description = if (action == ACTION_START) "启动设备" else "调节推拉"
                 )
             }
             
             ACTION_STRENGTH -> {
                 val value = intent.getIntExtra(EXTRA_VALUE, 50)
+                currentStrength = value
+                
                 sendWithRetry(
                     action = action,
                     strength = value,
-                    description = "强度: $value"
+                    description = "调节强度"
                 )
             }
             
             ACTION_TEMP -> {
                 val value = intent.getIntExtra(EXTRA_VALUE, 30)
+                currentTemp = value
+                
                 sendWithRetry(
                     action = action,
                     temp = value,
-                    description = "温度: $value"
-                )
-            }
-            
-            ACTION_STOP -> {
-                sendWithRetry(
-                    action = action,
-                    description = "停止"
+                    description = "调节温度"
                 )
             }
         }
@@ -114,9 +143,10 @@ class BleService : Service() {
         strength: Int = 0,
         temp: Int = 0,
         description: String,
-        retryCount: Int = 0
+        retryCount: Int = 0,
+        shouldStopService: Boolean = false // 是否在完成后停止服务
     ) {
-        updateNotification("发送中: $description")
+        updateNotification("⏳ 发送中: $description")
         
         bleAdvertiser.advertise(
             action = action,
@@ -127,29 +157,52 @@ class BleService : Service() {
             temp = temp,
             onSuccess = {
                 Log.d(TAG, "Command sent successfully: $action")
-                updateNotification("✓ 已发送: $description")
-                // 成功后延迟停止服务
-                handler.postDelayed({ stopSelf() }, 2000)
+                
+                // 成功后显示完整状态
+                if (shouldStopService) {
+                    updateNotification("✓ 已停止")
+                    handler.postDelayed({ 
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                        stopSelf() 
+                    }, 2000)
+                } else {
+                    updateNotification(buildFullStatusText())
+                }
             },
             onFailure = { errorCode ->
                 if (retryCount < MAX_RETRY) {
                     Log.w(TAG, "Command failed (attempt ${retryCount + 1}/$MAX_RETRY), retrying...")
-                    updateNotification("重试中 (${retryCount + 1}/$MAX_RETRY): $description")
+                    updateNotification("🔄 重试中 (${retryCount + 1}/$MAX_RETRY): $description")
                     
                     // 延迟后重试
                     handler.postDelayed({
                         sendWithRetry(
                             action, depth, extendSpeed, retractSpeed,
-                            strength, temp, description, retryCount + 1
+                            strength, temp, description, retryCount + 1, shouldStopService
                         )
                     }, RETRY_DELAY_MS)
                 } else {
                     Log.e(TAG, "Command failed after $MAX_RETRY retries: $errorCode")
-                    updateNotification("✗ 发送失败: $description (错误码: $errorCode)")
-                    handler.postDelayed({ stopSelf() }, 3000)
+                    updateNotification("✗ 失败: $description (错误: $errorCode)")
+                    
+                    // 失败后也保持服务运行，除非是停止指令
+                    if (shouldStopService) {
+                        handler.postDelayed({ 
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                            stopSelf() 
+                        }, 3000)
+                    }
                 }
             }
         )
+    }
+    
+    /**
+     * 构建完整状态文本
+     */
+    private fun buildFullStatusText(): String {
+        val status = if (isRunning) "运行中" else "待机"
+        return "$status | 深度:$currentDepth 伸:$currentExtend 缩:$currentRetract | 强度:$currentStrength 温度:${currentTemp}°C"
     }
     
     /**
@@ -213,6 +266,7 @@ class BleService : Service() {
         super.onDestroy()
         bleAdvertiser.stopAdvertising()
         handler.removeCallbacksAndMessages(null)
+        isServiceActive = false
         Log.d(TAG, "Service destroyed")
     }
 }
