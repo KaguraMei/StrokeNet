@@ -13,3 +13,12 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# 签名密钥配置（敏感信息，不要提交）
+keystore.properties
+*.jks
+*.keystore
+
+# Release APK（可选，根据需要决定是否提交）
+app/release/
+app/build/outputs/apk/release/

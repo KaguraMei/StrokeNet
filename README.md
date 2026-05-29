@@ -18,11 +18,14 @@
 
 ## 🚀 快速开始
 
-### 编译安装
+### 编译安装（开发版）
 ```bash
 ./gradlew assembleDebug
 adb install app/build/outputs/apk/debug/app-debug.apk
 ```
+
+### 打包正式版 APK
+详见 [正式版打包指南](docs/RELEASE_BUILD_GUIDE.md) 📦
 
 ### 授予权限
 ```bash
@@ -52,7 +55,8 @@ adb shell am start -n aya.strokenet/.MainActivity --es action stop
 
 ### 📚 核心文档
 
-- **[docs/SERVICE_INTEGRATION.md](docs/SERVICE_INTEGRATION.md)** - BLE Service 集成说明 ⭐ 新增
+- **[docs/RELEASE_BUILD_GUIDE.md](docs/RELEASE_BUILD_GUIDE.md)** - 正式版 APK 打包指南 📦 新增
+- **[docs/SERVICE_INTEGRATION.md](docs/SERVICE_INTEGRATION.md)** - BLE Service 集成说明 ⭐
 - **[docs/UUID_ENCODING.md](docs/UUID_ENCODING.md)** - UUID 编码配置 ⚠️ 重要
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - 架构设计说明
 - **[docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md)** - 构建部署指南
