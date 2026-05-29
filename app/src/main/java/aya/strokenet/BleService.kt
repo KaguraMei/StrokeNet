@@ -160,14 +160,17 @@ class BleService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "BLE 控制服务",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT // 改为 DEFAULT 以确保通知显示
             ).apply {
                 description = "发送 BLE 控制指令"
-                setShowBadge(false)
+                setShowBadge(true)
+                enableLights(true)
+                enableVibration(false)
             }
             
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
+            Log.d(TAG, "Notification channel created")
         }
     }
     
@@ -184,12 +187,14 @@ class BleService : Service() {
         )
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("StrokeNet")
+            .setContentTitle("StrokeNet 控制")
             .setContentText(contentText)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth) // 使用蓝牙图标
             .setContentIntent(pendingIntent)
-            .setOngoing(false) // 可以滑动删除
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true) // 前台服务期间不可滑动删除
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT) // 改为 DEFAULT
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
     }
     
