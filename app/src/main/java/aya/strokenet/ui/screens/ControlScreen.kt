@@ -22,25 +22,30 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import aya.strokenet.BleAdvertiser
 import aya.strokenet.BleService
 import aya.strokenet.data.model.ControlParams
 import aya.strokenet.ui.theme.*
 import aya.strokenet.ui.components.GlassPanel
 import aya.strokenet.ui.components.StatusIndicator
+import aya.strokenet.ui.viewmodel.ControlViewModel
 
 @Composable
 fun ControlScreen(
     bleAdvertiser: BleAdvertiser?,
     onCheckBluetooth: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: ControlViewModel = viewModel()
 ) {
-    var depth by remember { mutableStateOf(36f) }
-    var extendSpeed by remember { mutableStateOf(8f) }
-    var retractSpeed by remember { mutableStateOf(8f) }
-    var strength by remember { mutableStateOf(50f) }
-    var temp by remember { mutableStateOf(30f) }
-    var isRunning by remember { mutableStateOf(false) }
+    // 从 ViewModel 收集状态
+    val depth by viewModel.depth.collectAsState()
+    val extendSpeed by viewModel.extendSpeed.collectAsState()
+    val retractSpeed by viewModel.retractSpeed.collectAsState()
+    val strength by viewModel.strength.collectAsState()
+    val temp by viewModel.temp.collectAsState()
+    val isRunning by viewModel.isRunning.collectAsState()
+    
     var isBluetoothEnabled by remember { mutableStateOf(true) }
     
     val context = LocalContext.current
@@ -128,7 +133,7 @@ fun ControlScreen(
                 label = "推拉深度",
                 value = depth,
                 range = ControlParams.DEPTH_MIN.toFloat()..ControlParams.DEPTH_MAX.toFloat(),
-                onValueChange = { depth = it }
+                onValueChange = { viewModel.updateDepth(it) }
             )
 
             Divider(
@@ -140,7 +145,7 @@ fun ControlScreen(
                 label = "伸出速度",
                 value = extendSpeed,
                 range = ControlParams.SPEED_MIN.toFloat()..ControlParams.SPEED_MAX.toFloat(),
-                onValueChange = { extendSpeed = it }
+                onValueChange = { viewModel.updateExtendSpeed(it) }
             )
 
             Divider(
@@ -152,7 +157,7 @@ fun ControlScreen(
                 label = "缩回速度",
                 value = retractSpeed,
                 range = ControlParams.SPEED_MIN.toFloat()..ControlParams.SPEED_MAX.toFloat(),
-                onValueChange = { retractSpeed = it }
+                onValueChange = { viewModel.updateRetractSpeed(it) }
             )
         }
 
@@ -189,7 +194,7 @@ fun ControlScreen(
                 value = strength,
                 range = ControlParams.STRENGTH_MIN.toFloat()..ControlParams.STRENGTH_MAX.toFloat(),
                 onValueChange = {
-                    strength = it
+                    viewModel.updateStrength(it)
                     
                     // 取消之前的延迟任务
                     strengthRunnable?.let { runnable -> handler.removeCallbacks(runnable) }
@@ -222,7 +227,7 @@ fun ControlScreen(
                 range = ControlParams.TEMP_MIN.toFloat()..ControlParams.TEMP_MAX.toFloat(),
                 unit = "°C",
                 onValueChange = {
-                    temp = it
+                    viewModel.updateTemp(it)
                     
                     // 取消之前的延迟任务
                     tempRunnable?.let { runnable -> handler.removeCallbacks(runnable) }
@@ -283,7 +288,7 @@ fun ControlScreen(
                         context.startService(serviceIntent)
                     }
                     
-                    isRunning = true
+                    viewModel.setRunning(true)
                     android.widget.Toast.makeText(
                         context,
                         if (action == "start") "启动设备" else "更新参数",
@@ -322,7 +327,7 @@ fun ControlScreen(
                         context.startService(serviceIntent)
                     }
                     
-                    isRunning = false
+                    viewModel.setRunning(false)
                     android.widget.Toast.makeText(
                         context,
                         "停止设备",
