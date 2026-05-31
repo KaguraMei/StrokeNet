@@ -1,5 +1,6 @@
 package aya.strokenet.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +29,10 @@ import aya.strokenet.ui.components.GlassPanel
 fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val versionName = remember { getVersionName(context) }
+    val versionCode = remember { getVersionCode(context) }
+    
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -64,7 +70,7 @@ fun SettingsScreen(
 
             SettingItem(label = "应用名称", value = "StrokeNet")
             Divider(color = Color.Black.copy(alpha = 0.05f), modifier = Modifier.padding(vertical = 8.dp))
-            SettingItem(label = "版本号", value = "1.0.0")
+            SettingItem(label = "版本号", value = "$versionName (Build $versionCode)")
             Divider(color = Color.Black.copy(alpha = 0.05f), modifier = Modifier.padding(vertical = 8.dp))
             SettingItem(label = "构建日期", value = "2026.05.28")
         }
@@ -221,5 +227,34 @@ private fun SettingItem(
             fontWeight = FontWeight.Medium,
             color = iOSTextSecondary
         )
+    }
+}
+
+/**
+ * 获取应用版本名称
+ */
+private fun getVersionName(context: Context): String {
+    return try {
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        packageInfo.versionName ?: "未知"
+    } catch (e: Exception) {
+        "未知"
+    }
+}
+
+/**
+ * 获取应用版本号
+ */
+private fun getVersionCode(context: Context): Long {
+    return try {
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            packageInfo.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            packageInfo.versionCode.toLong()
+        }
+    } catch (e: Exception) {
+        0L
     }
 }
