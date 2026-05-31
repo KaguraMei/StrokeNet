@@ -32,6 +32,7 @@ import aya.strokenet.data.model.ControlParams
 import aya.strokenet.ui.theme.*
 import aya.strokenet.ui.components.GlassPanel
 import aya.strokenet.ui.components.StatusIndicator
+import aya.strokenet.ui.viewmodel.ControlViewModel
 
 @Composable
 fun ControlScreen(
@@ -44,6 +45,11 @@ fun ControlScreen(
     var isBluetoothEnabled by remember { mutableStateOf(true) }
     
     val context = LocalContext.current
+    
+    // 用于防抖的 Handler
+    val handler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
+    var strengthRunnable by remember { mutableStateOf<Runnable?>(null) }
+    var tempRunnable by remember { mutableStateOf<Runnable?>(null) }
 
     // 统一发送所有参数的函数
     val sendAllParameters: () -> Unit = {
@@ -280,6 +286,8 @@ fun ControlScreen(
                     if (viewModel.isHeating) {
                         sendAllParameters()
                     }
+                    strengthRunnable = newRunnable
+                    handler.postDelayed(newRunnable, 500) // 500ms 防抖
                 }
             )
 
@@ -466,6 +474,14 @@ fun ControlScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp)) // 底部留白
+    }
+    
+    // 清理 Handler 回调
+    DisposableEffect(Unit) {
+        onDispose {
+            strengthRunnable?.let { handler.removeCallbacks(it) }
+            tempRunnable?.let { handler.removeCallbacks(it) }
+        }
     }
 }
 

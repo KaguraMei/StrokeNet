@@ -45,6 +45,15 @@ class BleService : Service() {
     
     private lateinit var bleAdvertiser: DaxiuBleAdvertiser
     private val handler = Handler(Looper.getMainLooper())
+    private var isServiceActive = false // 跟踪服务是否处于活动状态
+    
+    // 维护当前设备状态
+    private var currentDepth = 36
+    private var currentExtend = 8
+    private var currentRetract = 8
+    private var currentStrength = 50
+    private var currentTemp = 30
+    private var isRunning = false
     
     override fun onCreate() {
         super.onCreate()
@@ -54,18 +63,33 @@ class BleService : Service() {
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // 启动前台服务
-        startForeground(NOTIFICATION_ID, buildNotification("准备发送指令..."))
+        // 首次启动或重新启动前台服务
+        if (!isServiceActive) {
+            startForeground(NOTIFICATION_ID, buildNotification(buildFullStatusText()))
+            isServiceActive = true
+            Log.d(TAG, "Foreground service started")
+        }
         
         intent?.let { handleIntent(it) }
         
-        return START_NOT_STICKY // 任务完成后不需要重启
+        return START_STICKY // 改为 STICKY，保持服务运行
     }
     
     private fun handleIntent(intent: Intent) {
         val action = intent.getStringExtra("action") ?: return
         
         Log.d(TAG, "Received action: $action")
+        
+        // 特殊处理停止指令
+        if (action == ACTION_STOP) {
+            isRunning = false
+            sendWithRetry(
+                action = action,
+                description = "停止",
+                shouldStopService = true // 停止后关闭服务
+            )
+            return
+        }
         
         when (action) {
             ACTION_SEND_ALL -> {
@@ -244,6 +268,14 @@ class BleService : Service() {
     }
     
     /**
+     * 构建完整状态文本
+     */
+    private fun buildFullStatusText(): String {
+        val status = if (isRunning) "运行中" else "待机"
+        return "$status | 深度:$currentDepth 伸:$currentExtend 缩:$currentRetract | 强度:$currentStrength 温度:${currentTemp}°C"
+    }
+    
+    /**
      * 创建通知渠道（Android 8.0+）
      */
     private fun createNotificationChannel() {
@@ -251,14 +283,17 @@ class BleService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "BLE 控制服务",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT // 改为 DEFAULT 以确保通知显示
             ).apply {
                 description = "发送 BLE 控制指令"
-                setShowBadge(false)
+                setShowBadge(true)
+                enableLights(true)
+                enableVibration(false)
             }
             
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
+            Log.d(TAG, "Notification channel created")
         }
     }
     
@@ -275,12 +310,14 @@ class BleService : Service() {
         )
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("StrokeNet")
+            .setContentTitle("StrokeNet 控制")
             .setContentText(contentText)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth) // 使用蓝牙图标
             .setContentIntent(pendingIntent)
-            .setOngoing(false) // 可以滑动删除
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true) // 前台服务期间不可滑动删除
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT) // 改为 DEFAULT
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
     }
     
@@ -299,6 +336,7 @@ class BleService : Service() {
         super.onDestroy()
         bleAdvertiser.stopCurrentBroadcast()
         handler.removeCallbacksAndMessages(null)
+        isServiceActive = false
         Log.d(TAG, "Service destroyed")
     }
 }
