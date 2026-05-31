@@ -1,6 +1,7 @@
 *.iml
 .gradle
 /local.properties
+/.idea/
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -13,3 +14,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# 忽略示例代码和参考文件
+/example/

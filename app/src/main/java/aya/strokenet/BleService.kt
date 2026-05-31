@@ -9,10 +9,12 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import aya.strokenet.ble.DaxiuBleAdvertiser
+import aya.strokenet.ble.DaxiuCommand
 
 /**
- * 前台服务：发送 BLE 指令并重试（失败时最多重试2次）
- * 不做持续循环，只确保指令送达
+ * 前台服务：发送 BLE 指令
+ * 使用官方逆向的完整协议实现
  */
 class BleService : Service() {
     
@@ -20,8 +22,6 @@ class BleService : Service() {
         private const val TAG = "BleService"
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "ble_service_channel"
-        private const val MAX_RETRY = 2 // 失败时最多重试2次
-        private const val RETRY_DELAY_MS = 300L // 重试间隔 300ms
         
         // Service Actions
         const val ACTION_START = "start"
@@ -29,22 +29,28 @@ class BleService : Service() {
         const val ACTION_STRENGTH = "strength"
         const val ACTION_TEMP = "temp"
         const val ACTION_STOP = "stop"
+        const val ACTION_STOP_THRUST = "stop_thrust"  // 新增：停止伸缩
+        const val ACTION_STOP_STRENGTH = "stop_strength"  // 新增：停止震动
+        const val ACTION_STOP_ALL = "stop_all"  // 新增：全部停止
+        const val ACTION_SEND_ALL = "send_all"  // 发送所有参数
         
         // Intent Extras
         const val EXTRA_DEPTH = "depth"
         const val EXTRA_EXTEND = "extend"
         const val EXTRA_RETRACT = "retract"
         const val EXTRA_VALUE = "value"
+        const val EXTRA_STRENGTH = "strength"  // 新增
+        const val EXTRA_TEMP = "temp"  // 新增
     }
     
-    private lateinit var bleAdvertiser: BleAdvertiser
+    private lateinit var bleAdvertiser: DaxiuBleAdvertiser
     private val handler = Handler(Looper.getMainLooper())
     
     override fun onCreate() {
         super.onCreate()
-        bleAdvertiser = BleAdvertiser(this)
+        bleAdvertiser = DaxiuBleAdvertiser(this)
         createNotificationChannel()
-        Log.d(TAG, "Service created")
+        Log.d(TAG, "Service created, Device ID: ${bleAdvertiser.getDeviceId()}")
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -62,94 +68,179 @@ class BleService : Service() {
         Log.d(TAG, "Received action: $action")
         
         when (action) {
+            ACTION_SEND_ALL -> {
+                // 批量发送所有参数
+                val depth = intent.getIntExtra(EXTRA_DEPTH, 36)
+                val extend = intent.getIntExtra(EXTRA_EXTEND, 8)
+                val retract = intent.getIntExtra(EXTRA_RETRACT, 8)
+                val strength = intent.getIntExtra(EXTRA_STRENGTH, 50)
+                val temp = intent.getIntExtra(EXTRA_TEMP, 0)
+                
+                sendAllCommands(depth, extend, retract, strength, temp)
+            }
+            
             ACTION_START, ACTION_THRUST -> {
                 val depth = intent.getIntExtra(EXTRA_DEPTH, 36)
                 val extend = intent.getIntExtra(EXTRA_EXTEND, 8)
                 val retract = intent.getIntExtra(EXTRA_RETRACT, 8)
                 
-                sendWithRetry(
-                    action = action,
+                val params = aya.strokenet.data.model.ControlParams(
                     depth = depth,
                     extendSpeed = extend,
-                    retractSpeed = retract,
-                    description = "推拉: 深度=$depth 伸=$extend 缩=$retract"
+                    retractSpeed = retract
                 )
+                
+                val uuid = aya.strokenet.ble.DaxiuCommand.buildControlCommand(params, this)
+                sendCommand(uuid, "推拉: 深度=$depth 伸=$extend 缩=$retract")
             }
             
             ACTION_STRENGTH -> {
                 val value = intent.getIntExtra(EXTRA_VALUE, 50)
-                sendWithRetry(
-                    action = action,
-                    strength = value,
-                    description = "强度: $value"
-                )
+                val uuid = aya.strokenet.ble.DaxiuCommand.buildStrengthCommand(value, this)
+                sendCommand(uuid, "强度: $value")
             }
             
             ACTION_TEMP -> {
                 val value = intent.getIntExtra(EXTRA_VALUE, 30)
-                sendWithRetry(
-                    action = action,
-                    temp = value,
-                    description = "温度: $value"
-                )
+                val uuid = aya.strokenet.ble.DaxiuCommand.buildTemperatureCommand(value, this)
+                sendCommand(uuid, "温度: $value")
             }
             
             ACTION_STOP -> {
-                sendWithRetry(
-                    action = action,
-                    description = "停止"
-                )
+                val uuid = aya.strokenet.ble.DaxiuCommand.buildStopCommand(this)
+                sendStopCommand(uuid, "停止伸缩")
+            }
+            
+            ACTION_STOP_THRUST -> {
+                val uuid = aya.strokenet.ble.DaxiuCommand.buildStopCommand(this)
+                sendStopCommand(uuid, "停止伸缩")
+            }
+            
+            ACTION_STOP_STRENGTH -> {
+                val uuid = aya.strokenet.ble.DaxiuCommand.buildStopStrengthCommand(this)
+                sendStopCommand(uuid, "停止震动")
+            }
+            
+            ACTION_STOP_ALL -> {
+                val uuid = aya.strokenet.ble.DaxiuCommand.buildStopAllCommand(this)
+                sendStopCommand(uuid, "全部停止")
             }
         }
     }
     
     /**
-     * 发送 BLE 指令，失败时重试最多2次
+     * 批量发送所有参数（推拉+震动+温度）
+     * 使用独立广播器，互不干扰
      */
-    private fun sendWithRetry(
-        action: String,
-        depth: Int = 0,
-        extendSpeed: Int = 0,
-        retractSpeed: Int = 0,
-        strength: Int = 0,
-        temp: Int = 0,
-        description: String,
-        retryCount: Int = 0
-    ) {
+    private fun sendAllCommands(depth: Int, extend: Int, retract: Int, strength: Int, temp: Int) {
+        val summary = buildString {
+            append("深度:$depth 伸:$extend 缩:$retract 强度:$strength")
+        }
+        
+        updateNotification("发送中: $summary")
+        
+        try {
+            // 1. 立即发送推拉命令（使用推拉广播器）
+            val params = aya.strokenet.data.model.ControlParams(
+                depth = depth,
+                extendSpeed = extend,
+                retractSpeed = retract
+            )
+            val thrustUuid = aya.strokenet.ble.DaxiuCommand.buildControlCommand(params, this)
+            bleAdvertiser.sendThrustCommand(thrustUuid)
+            Log.d(TAG, "Thrust command sent: $thrustUuid")
+            
+            // 2. 立即发送震动强度（使用震动广播器，不会影响推拉）
+            val strengthUuid = aya.strokenet.ble.DaxiuCommand.buildStrengthCommand(strength, this)
+            bleAdvertiser.sendStrengthCommand(strengthUuid)
+            Log.d(TAG, "Strength command sent: $strengthUuid")
+            
+            // 3. 如果有温度，发送温度命令（使用温度广播器）
+            if (temp > 0) {
+                val tempUuid = aya.strokenet.ble.DaxiuCommand.buildTemperatureCommand(temp, this)
+                bleAdvertiser.sendTemperatureCommand(tempUuid)
+                Log.d(TAG, "Temperature command sent: $tempUuid")
+            }
+            
+            // 延迟更新通知为成功
+            handler.postDelayed({
+                updateNotification("✓ 已发送: $summary")
+            }, 500)
+            
+            // 延迟停止服务
+            handler.postDelayed({ stopSelf() }, 2000)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Batch command failed: ${e.message}", e)
+            updateNotification("✗ 发送失败: $summary")
+            handler.postDelayed({ stopSelf() }, 3000)
+        }
+    }
+    
+    /**
+     * 发送停止命令（持续2秒确保设备收到）
+     */
+    private fun sendStopCommand(uuid: String, description: String) {
+        updateNotification("🚨 $description...")
+        
+        try {
+            Log.d(TAG, "========== 发送停止命令 ==========")
+            Log.d(TAG, "停止命令: $uuid")
+            Log.d(TAG, "描述: $description")
+            
+            // 先停止所有正在运行的广播
+            bleAdvertiser.stopCurrentBroadcast()
+            Log.d(TAG, "✓ 已停止所有广播")
+            
+            // 短暂延迟后发送停止命令
+            handler.postDelayed({
+                bleAdvertiser.startSingleBroadcast(uuid)
+                Log.d(TAG, "✓ 停止命令已发送")
+                
+                // 持续2秒，确保设备收到
+                handler.postDelayed({
+                    updateNotification("✓ $description 完成")
+                    Log.d(TAG, "持续2秒后停止广播")
+                    
+                    // 再次停止广播
+                    bleAdvertiser.stopCurrentBroadcast()
+                    Log.d(TAG, "========================================")
+                    
+                    // 延迟停止服务
+                    handler.postDelayed({ stopSelf() }, 1000)
+                }, 2000)
+            }, 100)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "停止命令失败: ${e.message}", e)
+            updateNotification("✗ $description 失败")
+            handler.postDelayed({ stopSelf() }, 3000)
+        }
+    }
+    
+    /**
+     * 发送 BLE 命令
+     */
+    private fun sendCommand(uuid: String, description: String) {
         updateNotification("发送中: $description")
         
-        bleAdvertiser.advertise(
-            action = action,
-            depth = depth,
-            extendSpeed = extendSpeed,
-            retractSpeed = retractSpeed,
-            strength = strength,
-            temp = temp,
-            onSuccess = {
-                Log.d(TAG, "Command sent successfully: $action")
+        try {
+            bleAdvertiser.startSingleBroadcast(uuid)
+            Log.d(TAG, "Command sent: $uuid")
+            
+            // 不立即更新为成功，等待一小段时间让多个命令都能显示
+            handler.postDelayed({
                 updateNotification("✓ 已发送: $description")
-                // 成功后延迟停止服务
-                handler.postDelayed({ stopSelf() }, 2000)
-            },
-            onFailure = { errorCode ->
-                if (retryCount < MAX_RETRY) {
-                    Log.w(TAG, "Command failed (attempt ${retryCount + 1}/$MAX_RETRY), retrying...")
-                    updateNotification("重试中 (${retryCount + 1}/$MAX_RETRY): $description")
-                    
-                    // 延迟后重试
-                    handler.postDelayed({
-                        sendWithRetry(
-                            action, depth, extendSpeed, retractSpeed,
-                            strength, temp, description, retryCount + 1
-                        )
-                    }, RETRY_DELAY_MS)
-                } else {
-                    Log.e(TAG, "Command failed after $MAX_RETRY retries: $errorCode")
-                    updateNotification("✗ 发送失败: $description (错误码: $errorCode)")
-                    handler.postDelayed({ stopSelf() }, 3000)
-                }
-            }
-        )
+            }, 300)
+            
+            // 延迟停止服务（给足够时间显示通知）
+            handler.postDelayed({ stopSelf() }, 3000)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Command failed: ${e.message}", e)
+            updateNotification("✗ 发送失败: $description")
+            handler.postDelayed({ stopSelf() }, 3000)
+        }
     }
     
     /**
@@ -206,7 +297,7 @@ class BleService : Service() {
     
     override fun onDestroy() {
         super.onDestroy()
-        bleAdvertiser.stopAdvertising()
+        bleAdvertiser.stopCurrentBroadcast()
         handler.removeCallbacksAndMessages(null)
         Log.d(TAG, "Service destroyed")
     }

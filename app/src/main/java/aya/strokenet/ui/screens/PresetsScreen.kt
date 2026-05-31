@@ -1,44 +1,74 @@
 package aya.strokenet.ui.screens
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import aya.strokenet.BleAdvertiser
+import androidx.lifecycle.viewmodel.compose.viewModel
+import aya.strokenet.ble.DaxiuBleAdvertiser
 import aya.strokenet.BleService
-import aya.strokenet.data.model.Preset
+import aya.strokenet.LoopPresetService
+import aya.strokenet.data.model.LoopPreset
+import aya.strokenet.data.model.PresetCommand
 import aya.strokenet.ui.theme.*
 import aya.strokenet.ui.components.GlassPanel
+import aya.strokenet.ui.viewmodel.PresetViewModel
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Composable
 fun PresetsScreen(
-    bleAdvertiser: BleAdvertiser?,
+    bleAdvertiser: DaxiuBleAdvertiser?,
     onCheckBluetooth: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: PresetViewModel = viewModel()
 ) {
-    val presets = remember { Preset.getBuiltInPresets() }
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
-    var selectedPreset by remember { mutableStateOf<Preset?>(null) }
+    var selectedPreset by remember { mutableStateOf<LoopPreset?>(null) }
+    
+    // 监听循环播放停止广播
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == LoopPresetService.BROADCAST_LOOP_STOPPED) {
+                    viewModel.playingPresetId = null
+                }
+            }
+        }
+        
+        val filter = IntentFilter(LoopPresetService.BROADCAST_LOOP_STOPPED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
+        
+        onDispose {
+            context.unregisterReceiver(receiver)
+        }
+    }
 
     // 预设详情对话框
     if (showDialog && selectedPreset != null) {
@@ -53,6 +83,7 @@ fun PresetsScreen(
             },
             text = {
                 Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
@@ -61,19 +92,29 @@ fun PresetsScreen(
                         color = iOSTextSecondary
                     )
                     
-                    Divider(color = Color.Black.copy(alpha = 0.1f))
+                    HorizontalDivider(color = Color.Black.copy(alpha = 0.1f))
                     
                     Text(
-                        text = "参数详情",
+                        text = "循环节奏",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     
-                    ParamRow("推拉深度", "${selectedPreset!!.params.depth}", "0-72")
-                    ParamRow("伸出速度", "${selectedPreset!!.params.extendSpeed}", "0-15")
-                    ParamRow("缩回速度", "${selectedPreset!!.params.retractSpeed}", "0-15")
-                    ParamRow("震动强度", "${selectedPreset!!.params.strength}", "0-100")
-                    ParamRow("加热温度", "${selectedPreset!!.params.temp}°C", "0-60")
+                    Text(
+                        text = "共 ${selectedPreset!!.commands.size} 个动作，总时长 ${selectedPreset!!.commands.sumOf { it.time } / 1000}秒/轮",
+                        fontSize = 13.sp,
+                        color = iOSTextSecondary
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // 显示每个命令的详细参数
+                    selectedPreset!!.commands.forEachIndexed { index, cmd ->
+                        CommandDetailRow(
+                            index = index + 1,
+                            command = cmd
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -92,63 +133,37 @@ fun PresetsScreen(
                         }
                         
                         // 检查蓝牙状态
-                        if (bleAdvertiser?.isBluetoothAvailable() == false) {
+                        if (bleAdvertiser?.isBluetoothEnabled() == false) {
                             onCheckBluetooth()
                             return@Button
                         }
                         
-                        // 通过 Service 发送启动指令
+                        // 启动循环播放服务
                         selectedPreset?.let { preset ->
-                            // 1. 发送推拉启动指令
-                            val startIntent = Intent(context, BleService::class.java).apply {
-                                putExtra("action", "start")
-                                putExtra(BleService.EXTRA_DEPTH, preset.params.depth)
-                                putExtra(BleService.EXTRA_EXTEND, preset.params.extendSpeed)
-                                putExtra(BleService.EXTRA_RETRACT, preset.params.retractSpeed)
+                            val presetJson = Json.encodeToString(preset)
+                            val intent = Intent(context, LoopPresetService::class.java).apply {
+                                putExtra("action", LoopPresetService.ACTION_START_LOOP)
+                                putExtra(LoopPresetService.EXTRA_PRESET_JSON, presetJson)
                             }
                             
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                context.startForegroundService(startIntent)
+                                context.startForegroundService(intent)
                             } else {
-                                context.startService(startIntent)
+                                context.startService(intent)
                             }
                             
-                            // 2. 延迟发送强度指令（等待第一个完成）
-                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                val strengthIntent = Intent(context, BleService::class.java).apply {
-                                    putExtra("action", "strength")
-                                    putExtra(BleService.EXTRA_VALUE, preset.params.strength)
-                                }
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                    context.startForegroundService(strengthIntent)
-                                } else {
-                                    context.startService(strengthIntent)
-                                }
-                            }, 1000)
-                            
-                            // 3. 延迟发送温度指令
-                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                val tempIntent = Intent(context, BleService::class.java).apply {
-                                    putExtra("action", "temp")
-                                    putExtra(BleService.EXTRA_VALUE, preset.params.temp)
-                                }
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                    context.startForegroundService(tempIntent)
-                                } else {
-                                    context.startService(tempIntent)
-                                }
-                            }, 2000)
+                            viewModel.playingPresetId = preset.id
                             
                             Toast.makeText(
                                 context,
-                                "正在启动「${preset.name}」模式",
+                                "正在循环播放「${preset.name}」",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = iOSBlue)
                 ) {
-                    Text("启动")
+                    Text("开始循环")
                 }
             },
             dismissButton = {
@@ -159,125 +174,229 @@ fun PresetsScreen(
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(bottom = if (viewModel.playingPresetId != null) 80.dp else 0.dp), // 为悬浮按钮留空间
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+        // 加载状态
+        if (viewModel.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+            return@Column
+        }
+        
         Text(
-            text = "选择一个预设模式快速开始设备，系统将自动应用配置的推拉深度、速度及温度。",
+            text = "选择一个预设模式开始循环播放，系统将自动按照预设的节奏循环发送命令。",
             fontSize = 14.sp,
             color = iOSTextSecondary,
             lineHeight = 20.sp,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        GlassPanel(modifier = Modifier.padding(0.dp)) {
-            presets.forEachIndexed { index, preset ->
-                AppleStylePresetRow(
-                    preset = preset,
-                    onClick = {
-                        selectedPreset = preset
-                        showDialog = true
-                    }
-                )
-
-                // 除了最后一个，都画分割线
-                if (index < presets.size - 1) {
-                    Divider(
-                        color = Color.Black.copy(alpha = 0.05f),
-                        modifier = Modifier.padding(start = 48.dp, top = 12.dp, bottom = 12.dp)
+        // 官方预设
+        if (viewModel.officialPresets.isNotEmpty()) {
+            Text(
+                text = "官方预设",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = iOSTextPrimary,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            
+            GlassPanel(modifier = Modifier.padding(0.dp)) {
+                viewModel.officialPresets.forEachIndexed { index, preset ->
+                    PresetRow(
+                        preset = preset,
+                        isPlaying = viewModel.playingPresetId == preset.id,
+                        onClick = {
+                            selectedPreset = preset
+                            showDialog = true
+                        }
                     )
+
+                    if (index < viewModel.officialPresets.size - 1) {
+                        HorizontalDivider(
+                            color = Color.Black.copy(alpha = 0.05f),
+                            modifier = Modifier.padding(start = 48.dp, top = 12.dp, bottom = 12.dp)
+                        )
+                    }
                 }
             }
         }
         
-        // 添加停止按钮
-        Button(
-            onClick = {
-                // 检查权限
-                if (bleAdvertiser?.hasBluetoothPermissions() == false) {
+        // 自定义预设
+        if (viewModel.customPresets.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "自定义预设",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = iOSTextPrimary
+                )
+                TextButton(
+                    onClick = { /* TODO: 导航到自定义预设管理页面 */ }
+                ) {
+                    Text("管理", color = iOSBlue)
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = iOSBlue,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            
+            GlassPanel(modifier = Modifier.padding(0.dp)) {
+                viewModel.customPresets.forEachIndexed { index, preset ->
+                    PresetRow(
+                        preset = preset,
+                        isPlaying = viewModel.playingPresetId == preset.id,
+                        onClick = {
+                            selectedPreset = preset
+                            showDialog = true
+                        }
+                    )
+
+                    if (index < viewModel.customPresets.size - 1) {
+                        HorizontalDivider(
+                            color = Color.Black.copy(alpha = 0.05f),
+                            modifier = Modifier.padding(start = 48.dp, top = 12.dp, bottom = 12.dp)
+                        )
+                    }
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+        
+        // 悬浮急停按钮（可拖动）
+        if (viewModel.playingPresetId != null) {
+            var offsetX by remember { mutableFloatStateOf(0f) }
+            var offsetY by remember { mutableFloatStateOf(0f) }
+            
+            FloatingActionButton(
+                onClick = {
+                    // 停止循环播放服务
+                    context.stopService(Intent(context, LoopPresetService::class.java))
+                    viewModel.playingPresetId = null
+                    
+                    // 发送全部停止命令
+                    val serviceIntent = Intent(context, BleService::class.java).apply {
+                        putExtra("action", BleService.ACTION_STOP_ALL)
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(serviceIntent)
+                    } else {
+                        context.startService(serviceIntent)
+                    }
+                    
                     Toast.makeText(
                         context,
-                        "请在设置中授予蓝牙权限",
-                        Toast.LENGTH_LONG
+                        "正在停止设备...",
+                        Toast.LENGTH_SHORT
                     ).show()
-                    return@Button
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .offset { androidx.compose.ui.unit.IntOffset(offsetX.toInt(), offsetY.toInt()) }
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            offsetX += dragAmount.x
+                            offsetY += dragAmount.y
+                        }
+                    },
+                containerColor = iOSRed,
+                contentColor = Color.White
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Stop,
+                        contentDescription = "紧急停止",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        "紧急停止",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
-                
-                // 通过 Service 发送停止指令
-                val stopIntent = Intent(context, BleService::class.java).apply {
-                    putExtra("action", "stop")
-                }
-                
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(stopIntent)
-                } else {
-                    context.startService(stopIntent)
-                }
-                
-                Toast.makeText(
-                    context,
-                    "停止设备",
-                    Toast.LENGTH_SHORT
-                ).show()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = iOSRed)
-        ) {
-            Text(
-                "停止设备",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
-fun AppleStylePresetRow(preset: Preset, onClick: () -> Unit) {
+fun PresetRow(
+    preset: LoopPreset,
+    isPlaying: Boolean,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .background(iOSBlue.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
+                .background(
+                    if (isPlaying) iOSBlue else iOSBlue.copy(alpha = 0.1f),
+                    RoundedCornerShape(10.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
-            // 根据预设名称选择图标
-            val icon = when {
-                preset.name.contains("温柔") -> Icons.Default.Favorite
-                preset.name.contains("标准") -> Icons.Default.Star
-                preset.name.contains("强劲") -> Icons.Default.FlashOn
-                preset.name.contains("持久") -> Icons.Default.Schedule
-                else -> Icons.Default.FiberManualRecord
-            }
             Icon(
-                icon,
+                if (isPlaying) Icons.Default.PlayArrow else Icons.Default.FiberManualRecord,
                 contentDescription = null,
-                tint = iOSBlue,
+                tint = if (isPlaying) Color.White else iOSBlue,
                 modifier = Modifier.size(20.dp)
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = preset.name,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Medium,
-                color = iOSTextPrimary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = preset.name,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = iOSTextPrimary
+                )
+                if (preset.isCustom) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "自定义",
+                        fontSize = 11.sp,
+                        color = Color.White,
+                        modifier = Modifier
+                            .background(iOSBlue, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
             Text(
                 text = preset.description,
                 fontSize = 13.sp,
@@ -288,6 +407,152 @@ fun AppleStylePresetRow(preset: Preset, onClick: () -> Unit) {
             Icons.Default.ChevronRight,
             contentDescription = null,
             tint = Color(0xFFC7C7CC)
+        )
+    }
+}
+
+/**
+ * 解析命令字符串中的参数
+ * 格式: 710003**-8800-####-0000-DDEERRSSTTTT
+ * DD=深度, EE=伸速度, RR=缩速度, SS=强度, TT=温度
+ */
+private fun parseCommandParams(command: String): Map<String, Int> {
+    val params = mutableMapOf<String, Int>()
+    
+    try {
+        // 提取最后的参数部分 (去掉UUID前缀)
+        val parts = command.split("-")
+        if (parts.size >= 5) {
+            val paramHex = parts[4] // 例如: "1908090000"
+            
+            if (paramHex.length >= 8) {
+                // 解析各个参数 (每2位十六进制)
+                val depth = paramHex.substring(0, 2).toIntOrNull(16) ?: 0
+                val extendSpeed = paramHex.substring(2, 4).toIntOrNull(16) ?: 0
+                val retractSpeed = paramHex.substring(4, 6).toIntOrNull(16) ?: 0
+                val strength = paramHex.substring(6, 8).toIntOrNull(16) ?: 0
+                
+                params["depth"] = depth
+                params["extend"] = extendSpeed
+                params["retract"] = retractSpeed
+                params["strength"] = strength
+                
+                // 如果有温度参数
+                if (paramHex.length >= 10) {
+                    val temp = paramHex.substring(8, 10).toIntOrNull(16) ?: 0
+                    if (temp > 0) {
+                        params["temp"] = temp
+                    }
+                }
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+    
+    return params
+}
+
+@Composable
+fun CommandDetailRow(
+    index: Int,
+    command: PresetCommand
+) {
+    val params = remember(command) { parseCommandParams(command.command) }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black.copy(alpha = 0.03f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "动作 $index",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = iOSTextPrimary
+            )
+            Text(
+                text = "${command.time / 1000.0}秒",
+                fontSize = 13.sp,
+                color = iOSBlue,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        
+        // 参数网格
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            params["depth"]?.let { depth ->
+                ParamChip(
+                    label = "深度",
+                    value = "$depth",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            params["extend"]?.let { extend ->
+                ParamChip(
+                    label = "伸",
+                    value = "$extend",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            params["retract"]?.let { retract ->
+                ParamChip(
+                    label = "缩",
+                    value = "$retract",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            params["strength"]?.let { strength ->
+                ParamChip(
+                    label = "强度",
+                    value = "$strength",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        
+        params["temp"]?.let { temp ->
+            ParamChip(
+                label = "温度",
+                value = "$temp°C",
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+fun ParamChip(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .padding(vertical = 6.dp, horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = iOSTextSecondary
+        )
+        Text(
+            text = value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = iOSTextPrimary
         )
     }
 }

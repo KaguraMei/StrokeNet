@@ -13,6 +13,9 @@
     <!-- 前台服务权限 (Android 9+) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    
+    <!-- 通知权限 (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
 
@@ -40,6 +43,20 @@
         <!-- BLE 前台服务 -->
         <service
             android:name=".BleService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+        
+        <!-- 加热定时器服务 -->
+        <service
+            android:name=".HeatingTimerService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+        
+        <!-- 循环预设播放服务 -->
+        <service
+            android:name=".LoopPresetService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />

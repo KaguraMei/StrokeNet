@@ -17,15 +17,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import aya.strokenet.ui.theme.StrokeNetTheme
 import aya.strokenet.ui.components.GlassBottomDock
 import aya.strokenet.ui.components.GlassTopBar
 import aya.strokenet.ui.theme.iOSBg
+import aya.strokenet.ui.viewmodel.ControlViewModel
+
+import aya.strokenet.ble.DaxiuBleAdvertiser
 
 class MainActivity : ComponentActivity() {
     
-    private lateinit var bleAdvertiser: BleAdvertiser
+    private lateinit var bleAdvertiser: DaxiuBleAdvertiser
     
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -50,7 +53,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         try {
-            bleAdvertiser = BleAdvertiser(this)
+            bleAdvertiser = DaxiuBleAdvertiser(this)
             
             // 检查并请求权限
             checkAndRequestPermissions()
@@ -128,18 +131,23 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun checkAndRequestPermissions() {
-        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            arrayOf(
-                Manifest.permission.BLUETOOTH_ADVERTISE,
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
+        val permissions = mutableListOf<String>()
+        
+        // 蓝牙权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            permissions.add(Manifest.permission.BLUETOOTH_ADVERTISE)
+            permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
         } else {
-            arrayOf(
-                Manifest.permission.BLUETOOTH,
-                Manifest.permission.BLUETOOTH_ADMIN,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
+            permissions.add(Manifest.permission.BLUETOOTH)
+            permissions.add(Manifest.permission.BLUETOOTH_ADMIN)
+        }
+        
+        // 位置权限
+        permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        
+        // 通知权限 (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         }
         
         val needRequest = permissions.filter {
@@ -152,7 +160,7 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun checkBluetooth() {
-        if (!bleAdvertiser.isBluetoothAvailable()) {
+        if (!bleAdvertiser.isBluetoothEnabled()) {
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             enableBluetoothLauncher.launch(enableBtIntent)
         }
@@ -160,16 +168,19 @@ class MainActivity : ComponentActivity() {
     
     override fun onDestroy() {
         super.onDestroy()
-        bleAdvertiser.stopAdvertising()
+        bleAdvertiser.shutdown()
     }
 }
 
 @Composable
 fun StrokeNetApp(
-    bleAdvertiser: BleAdvertiser? = null,
+    bleAdvertiser: DaxiuBleAdvertiser? = null,
     onCheckBluetooth: () -> Unit = {}
 ) {
     var currentScreen by rememberSaveable { mutableStateOf("control") }
+    
+    // 获取ViewModel，生命周期跟随Activity
+    val controlViewModel: ControlViewModel = viewModel()
 
     // 页面标题映射
     val screenTitle = when(currentScreen) {
@@ -200,7 +211,8 @@ fun StrokeNetApp(
                 "control" -> {
                     aya.strokenet.ui.screens.ControlScreen(
                         bleAdvertiser = bleAdvertiser,
-                        onCheckBluetooth = onCheckBluetooth
+                        onCheckBluetooth = onCheckBluetooth,
+                        viewModel = controlViewModel  // 传入ViewModel
                     )
                 }
                 "presets" -> {

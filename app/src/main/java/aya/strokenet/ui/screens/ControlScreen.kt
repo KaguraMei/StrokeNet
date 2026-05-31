@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,8 +23,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import aya.strokenet.BleAdvertiser
+import androidx.core.content.ContextCompat
+import aya.strokenet.ble.DaxiuBleAdvertiser
 import aya.strokenet.BleService
+import aya.strokenet.HeatingTimerService
+import aya.strokenet.LoopPresetService
 import aya.strokenet.data.model.ControlParams
 import aya.strokenet.ui.theme.*
 import aya.strokenet.ui.components.GlassPanel
@@ -31,23 +35,50 @@ import aya.strokenet.ui.components.StatusIndicator
 
 @Composable
 fun ControlScreen(
-    bleAdvertiser: BleAdvertiser?,
+    bleAdvertiser: DaxiuBleAdvertiser?,
     onCheckBluetooth: () -> Unit,
+    viewModel: aya.strokenet.ui.viewmodel.ControlViewModel,
     modifier: Modifier = Modifier
 ) {
-    var depth by remember { mutableStateOf(36f) }
-    var extendSpeed by remember { mutableStateOf(8f) }
-    var retractSpeed by remember { mutableStateOf(8f) }
-    var strength by remember { mutableStateOf(50f) }
-    var temp by remember { mutableStateOf(30f) }
-    var isRunning by remember { mutableStateOf(false) }
+    // 使用ViewModel中的状态，页面切换时数据不会丢失
     var isBluetoothEnabled by remember { mutableStateOf(true) }
     
     val context = LocalContext.current
 
+    // 统一发送所有参数的函数
+    val sendAllParameters: () -> Unit = {
+        if (!isBluetoothEnabled) {
+            onCheckBluetooth()
+        } else {
+            // 1. 先停止预设循环播放（如果正在播放）
+            context.stopService(Intent(context, LoopPresetService::class.java))
+            
+            // 2. 使用批量发送API
+            val intent = Intent(context, BleService::class.java).apply {
+                putExtra("action", BleService.ACTION_SEND_ALL)
+                putExtra(BleService.EXTRA_DEPTH, viewModel.depth.toInt())
+                putExtra(BleService.EXTRA_EXTEND, viewModel.extendSpeed.toInt())
+                putExtra(BleService.EXTRA_RETRACT, viewModel.retractSpeed.toInt())
+                putExtra(BleService.EXTRA_STRENGTH, viewModel.strength.toInt())
+                // 如果正在加热，包含温度参数
+                if (viewModel.isHeating) {
+                    putExtra(BleService.EXTRA_TEMP, viewModel.temp.toInt())
+                }
+            }
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+            
+            viewModel.isRunning = true
+        }
+    }
+
     // 初始检查蓝牙状态
     LaunchedEffect(Unit) {
-        isBluetoothEnabled = bleAdvertiser?.isBluetoothAvailable() ?: false
+        isBluetoothEnabled = bleAdvertiser?.isBluetoothEnabled() ?: false
     }
     
     // 监听蓝牙状态变化
@@ -66,12 +97,31 @@ fun ControlScreen(
                             else -> isBluetoothEnabled
                         }
                     }
+                    HeatingTimerService.BROADCAST_TIMER_STOPPED -> {
+                        // 定时器停止，同步UI状态
+                        viewModel.isHeating = false
+                        viewModel.tempDuration = 0f
+                    }
                 }
             }
         }
         
-        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
-        context.registerReceiver(bluetoothReceiver, filter)
+        val filter = IntentFilter().apply {
+            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+            addAction(HeatingTimerService.BROADCAST_TIMER_STOPPED)
+        }
+        
+        // Android 13+ 需要指定 RECEIVER_NOT_EXPORTED
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(bluetoothReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            ContextCompat.registerReceiver(
+                context,
+                bluetoothReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        }
         
         onDispose {
             context.unregisterReceiver(bluetoothReceiver)
@@ -87,7 +137,7 @@ fun ControlScreen(
     ) {
         // 状态指示器
         StatusIndicator(
-            isRunning = isRunning,
+            isRunning = viewModel.isRunning,
             isBluetoothEnabled = isBluetoothEnabled
         )
 
@@ -121,9 +171,10 @@ fun ControlScreen(
 
             AppleStyleSlider(
                 label = "推拉深度",
-                value = depth,
+                value = viewModel.depth,
                 range = ControlParams.DEPTH_MIN.toFloat()..ControlParams.DEPTH_MAX.toFloat(),
-                onValueChange = { depth = it }
+                onValueChange = { viewModel.depth = it },
+                onValueChangeFinished = { sendAllParameters() }
             )
 
             Divider(
@@ -133,9 +184,10 @@ fun ControlScreen(
 
             AppleStyleSlider(
                 label = "伸出速度",
-                value = extendSpeed,
+                value = viewModel.extendSpeed,
                 range = ControlParams.SPEED_MIN.toFloat()..ControlParams.SPEED_MAX.toFloat(),
-                onValueChange = { extendSpeed = it }
+                onValueChange = { viewModel.extendSpeed = it },
+                onValueChangeFinished = { sendAllParameters() }
             )
 
             Divider(
@@ -145,9 +197,10 @@ fun ControlScreen(
 
             AppleStyleSlider(
                 label = "缩回速度",
-                value = retractSpeed,
+                value = viewModel.retractSpeed,
                 range = ControlParams.SPEED_MIN.toFloat()..ControlParams.SPEED_MAX.toFloat(),
-                onValueChange = { retractSpeed = it }
+                onValueChange = { viewModel.retractSpeed = it },
+                onValueChangeFinished = { sendAllParameters() }
             )
         }
 
@@ -179,21 +232,53 @@ fun ControlScreen(
                 )
             }
 
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "震动强度",
+                        fontSize = 15.sp,
+                        color = iOSTextPrimary
+                    )
+                    Text(
+                        text = "${viewModel.strength.toInt()}",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = iOSBlue
+                    )
+                }
+                Slider(
+                    value = viewModel.strength,
+                    onValueChange = { viewModel.strength = it },
+                    onValueChangeFinished = { sendAllParameters() },
+                    valueRange = ControlParams.STRENGTH_MIN.toFloat()..ControlParams.STRENGTH_MAX.toFloat(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color.White,
+                        activeTrackColor = iOSBlue,
+                        inactiveTrackColor = Color.Black.copy(alpha = 0.08f)
+                    ),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            Divider(
+                color = Color.Black.copy(alpha = 0.05f),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
             AppleStyleSlider(
-                label = "震动强度",
-                value = strength,
-                range = ControlParams.STRENGTH_MIN.toFloat()..ControlParams.STRENGTH_MAX.toFloat(),
-                onValueChange = {
-                    strength = it
-                    // 通过 Service 发送强度指令
-                    val serviceIntent = Intent(context, BleService::class.java).apply {
-                        putExtra("action", "strength")
-                        putExtra(BleService.EXTRA_VALUE, it.toInt())
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(serviceIntent)
-                    } else {
-                        context.startService(serviceIntent)
+                label = "加热温度",
+                value = viewModel.temp,
+                range = ControlParams.TEMP_MIN.toFloat()..ControlParams.TEMP_MAX.toFloat(),
+                unit = "°C",
+                onValueChange = { viewModel.temp = it },
+                onValueChangeFinished = {
+                    // 如果正在加热，更新温度
+                    if (viewModel.isHeating) {
+                        sendAllParameters()
                     }
                 }
             )
@@ -203,27 +288,90 @@ fun ControlScreen(
                 modifier = Modifier.padding(vertical = 8.dp)
             )
 
-            AppleStyleSlider(
-                label = "加热温度",
-                value = temp,
-                range = ControlParams.TEMP_MIN.toFloat()..ControlParams.TEMP_MAX.toFloat(),
-                unit = "°C",
-                onValueChange = {
-                    temp = it
-                    // 通过 Service 发送温度指令
-                    val serviceIntent = Intent(context, BleService::class.java).apply {
-                        putExtra("action", "temp")
-                        putExtra(BleService.EXTRA_VALUE, it.toInt())
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(serviceIntent)
-                    } else {
-                        context.startService(serviceIntent)
-                    }
+            // 加热时长控制
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "加热时长",
+                        fontSize = 15.sp,
+                        color = iOSTextPrimary
+                    )
+                    Text(
+                        text = "${viewModel.tempDuration.toInt()}分钟",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (viewModel.tempDuration > 0) iOSBlue else iOSTextSecondary
+                    )
                 }
-            )
+                Slider(
+                    value = viewModel.tempDuration,
+                    onValueChange = { viewModel.tempDuration = it },
+                    onValueChangeFinished = {
+                        // 滑块停止时处理
+                        if (viewModel.tempDuration > 0) {
+                            // 检查温度是否设置
+                            if (viewModel.temp <= 0) {
+                                android.widget.Toast.makeText(context, "请先调整温度", android.widget.Toast.LENGTH_SHORT).show()
+                                viewModel.tempDuration = 0f
+                                return@Slider
+                            }
+                            
+                            // 启动加热定时器服务
+                            viewModel.isHeating = true
+                            val timerIntent = Intent(context, HeatingTimerService::class.java).apply {
+                                putExtra("action", HeatingTimerService.ACTION_START_TIMER)
+                                putExtra(HeatingTimerService.EXTRA_DURATION_MINUTES, viewModel.tempDuration.toInt())
+                                putExtra(HeatingTimerService.EXTRA_TEMPERATURE, viewModel.temp.toInt())
+                            }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                context.startForegroundService(timerIntent)
+                            } else {
+                                context.startService(timerIntent)
+                            }
+                            
+                            android.widget.Toast.makeText(
+                                context,
+                                "加热已启动，${viewModel.tempDuration.toInt()}分钟后自动关闭",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            // 停止加热
+                            viewModel.isHeating = false
+                            val timerIntent = Intent(context, HeatingTimerService::class.java).apply {
+                                putExtra("action", HeatingTimerService.ACTION_STOP_TIMER)
+                            }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                context.startForegroundService(timerIntent)
+                            } else {
+                                context.startService(timerIntent)
+                            }
+                            
+                            android.widget.Toast.makeText(context, "加热已停止", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    valueRange = ControlParams.TEMP_DURATION_MIN.toFloat()..ControlParams.TEMP_DURATION_MAX.toFloat(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color.White,
+                        activeTrackColor = iOSBlue,
+                        inactiveTrackColor = Color.Black.copy(alpha = 0.08f)
+                    ),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                if (viewModel.tempDuration == 0f && !viewModel.isHeating) {
+                    Text(
+                        text = "💡 拉动滑块设置加热时长并启动",
+                        fontSize = 12.sp,
+                        color = iOSTextSecondary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
         }
-
+        
         // iOS风格大按钮区域
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -241,33 +389,19 @@ fun ControlScreen(
                         return@Button
                     }
                     
-                    // 检查蓝牙状态，如果未启用则弹出系统对话框
+                    // 检查蓝牙状态
                     if (!isBluetoothEnabled) {
                         onCheckBluetooth()
                         return@Button
                     }
                     
-                    // 通过 Service 发送指令
-                    val action = if (isRunning) "thrust" else "start"
-                    val serviceIntent = Intent(context, BleService::class.java).apply {
-                        putExtra("action", action)
-                        putExtra(BleService.EXTRA_DEPTH, depth.toInt())
-                        putExtra(BleService.EXTRA_EXTEND, extendSpeed.toInt())
-                        putExtra(BleService.EXTRA_RETRACT, retractSpeed.toInt())
-                    }
+                    // 发送所有参数
+                    sendAllParameters()
                     
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(serviceIntent)
-                    } else {
-                        context.startService(serviceIntent)
+                    val message = if (viewModel.isRunning) "更新参数" else {
+                        if (viewModel.isHeating) "启动设备（推拉+震动+加热）" else "启动设备（推拉+震动）"
                     }
-                    
-                    isRunning = true
-                    android.widget.Toast.makeText(
-                        context,
-                        if (action == "start") "启动设备" else "更新参数",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
+                    android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier
                     .weight(1f)
@@ -276,7 +410,7 @@ fun ControlScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = iOSBlue)
             ) {
                 Text(
-                    if (isRunning) "调节更新" else "启动设备",
+                    if (viewModel.isRunning) "调节更新" else "启动设备",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -290,21 +424,30 @@ fun ControlScreen(
                         return@Button
                     }
                     
-                    // 通过 Service 发送停止指令
-                    val serviceIntent = Intent(context, BleService::class.java).apply {
-                        putExtra("action", "stop")
-                    }
+                    // 停止预设循环播放
+                    context.stopService(Intent(context, LoopPresetService::class.java))
                     
+                    // 发送全部停止命令并持续2秒
+                    val serviceIntent = Intent(context, BleService::class.java).apply {
+                        putExtra("action", BleService.ACTION_STOP_ALL)
+                    }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(serviceIntent)
                     } else {
                         context.startService(serviceIntent)
                     }
                     
-                    isRunning = false
+                    // 停止加热定时器服务
+                    if (viewModel.isHeating) {
+                        viewModel.isHeating = false
+                        viewModel.tempDuration = 0f
+                        context.stopService(Intent(context, HeatingTimerService::class.java))
+                    }
+                    
+                    viewModel.isRunning = false
                     android.widget.Toast.makeText(
                         context,
-                        "停止设备",
+                        "正在停止设备...",
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 },
@@ -335,7 +478,8 @@ fun AppleStyleSlider(
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     unit: String = "",
-    onValueChange: (Float) -> Unit
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: (() -> Unit)? = null
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -358,6 +502,7 @@ fun AppleStyleSlider(
         Slider(
             value = value,
             onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
             valueRange = range,
             colors = SliderDefaults.colors(
                 thumbColor = Color.White,

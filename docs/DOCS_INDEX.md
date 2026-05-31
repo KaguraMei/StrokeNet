@@ -2,7 +2,8 @@
 
 > 📚 所有项目文档的导航和说明
 
-**最后更新**: 2026-05-29
+**最后更新**: 2024年  
+**文档版本**: 2.0 - 第一阶段修复完成
 
 ---
 
@@ -12,12 +13,7 @@
 
 **必读**: [`AI_AGENT_GUIDE.md`](AI_AGENT_GUIDE.md) ⭐⭐⭐⭐⭐
 
-这是专为 AI Agent 设计的综合开发指南，整合了所有关键信息：
-- 项目概述和当前状态
-- 完整的技术架构
-- 核心功能说明
-- 开发指南和快速参考
-- 下一步工作清单
+这是专为 AI Agent 设计的综合开发指南，整合了所有关键信息。
 
 **如果你是 AI Agent，从这里开始！**
 
@@ -37,6 +33,7 @@
 |------|------|---------|--------|
 | [`../README.md`](../README.md) | 项目介绍、快速开始 | 所有人 | ⭐⭐⭐⭐⭐ |
 | [`QUICKSTART.md`](QUICKSTART.md) | 快速上手指南 | 新手 | ⭐⭐⭐⭐ |
+| [`QUICK_REFERENCE.md`](QUICK_REFERENCE.md) | 快速参考卡片 | 所有人 | ⭐⭐⭐⭐ |
 | [`AI_AGENT_GUIDE.md`](AI_AGENT_GUIDE.md) | AI Agent 综合指南 | AI Agent | ⭐⭐⭐⭐⭐ |
 
 ### 🏗️ 架构文档
@@ -45,490 +42,168 @@
 |------|------|---------|--------|
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 架构设计说明 | 开发者 | ⭐⭐⭐⭐ |
 | [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md) | 完整项目指南 | 开发者 | ⭐⭐⭐ |
+| [`SERVICE_INTEGRATION.md`](SERVICE_INTEGRATION.md) | 前台服务集成 | 开发者 | ⭐⭐⭐ |
 
-### 🔧 开发文档
+### 🔧 BLE协议文档
 
 | 文档 | 用途 | 推荐对象 | 优先级 |
 |------|------|---------|--------|
-| [`SERVICE_INTEGRATION.md`](SERVICE_INTEGRATION.md) | BLE Service 集成说明 | 开发者 | ⭐⭐⭐⭐⭐ |
-| [`UUID_ENCODING.md`](UUID_ENCODING.md) | UUID 编码配置说明 | 核心开发者 | ⭐⭐⭐⭐⭐ |
-| [`BUILD_GUIDE.md`](BUILD_GUIDE.md) | 构建和部署指南 | 开发者 | ⭐⭐⭐ |
+| [`BLE_PROTOCOL_DAXIU.md`](BLE_PROTOCOL_DAXIU.md) | BLE协议完整文档 | 开发者 | ⭐⭐⭐⭐⭐ |
+| [`UUID_ENCODING.md`](UUID_ENCODING.md) | UUID编码规范 | 开发者 | ⭐⭐⭐⭐ |
+| [`BLE_IMPROVEMENTS_NEEDED.md`](BLE_IMPROVEMENTS_NEEDED.md) | BLE改进清单 | 开发者 | ⭐⭐⭐ |
+| [`BLE_MIGRATION_SUMMARY.md`](BLE_MIGRATION_SUMMARY.md) | BLE迁移总结 | 开发者 | ⭐⭐⭐ |
 
----
+### 🔍 深度分析文档
 
-## 📋 文档详细说明
-
-### 核心文档
-
-#### [`AI_AGENT_GUIDE.md`](AI_AGENT_GUIDE.md)
-**目标读者**: AI Agent  
-**内容**:
-- 项目概述和当前状态
-- 完整技术架构
-- BLE Service 集成
-- 核心功能详解
-- 文件结构说明
-- 开发指南和常见任务
-- 下一步工作清单
-- 快速参考和命令速查
-
-**何时阅读**: AI Agent 开始工作时的第一份文档
-
----
-
-#### [`../README.md`](../README.md)
-**目标读者**: 所有人  
-**内容**:
-- 项目简介和特性
-- 快速开始（编译、安装、测试）
-- 文档导航
-- 项目结构
-- 控制协议说明
-- Intent 接口使用
-- MCP 服务集成
-- 前台服务特性
-
-**何时阅读**: 第一次接触项目时
-
----
-
-### 技术文档
-
-#### [`SERVICE_INTEGRATION.md`](SERVICE_INTEGRATION.md)
-**目标读者**: 开发者  
-**内容**:
-- BLE Service 架构设计
-- 前台服务工作流程
-- 重试机制说明
-- 通知栏状态
-- 未来功能规划（自定义动作循环）
-
-**何时阅读**: 需要理解或修改 Service 层时
-
----
-
-#### [`ARCHITECTURE.md`](ARCHITECTURE.md)
-**目标读者**: 开发者  
-**内容**:
-- 技术栈
-- 架构模式
-- 模块划分
-- 数据流
-- 依赖关系
-
-**何时阅读**: 需要理解整体架构时
-
----
-
-#### [`UUID_ENCODING.md`](UUID_ENCODING.md)
-**目标读者**: 核心开发者  
-**内容**:
-- UUID 编码原理
-- 逆向方法
-- 参数映射
-- 编码示例
-- 调整步骤
-
-**何时阅读**: ⚠️ 必读！需要调整 BLE 广播编码时
-
----
-
-#### [`BUILD_GUIDE.md`](BUILD_GUIDE.md)
-**目标读者**: 开发者  
-**内容**:
-- 环境配置
-- 编译步骤
-- 部署方法
-- 常见问题
-
-**何时阅读**: 第一次编译项目时
-
----
-
-### 参考文档
-
-#### [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md)
-**目标读者**: 开发者  
-**内容**: 完整的项目指南
-
-**何时阅读**: 需要详细了解项目时（建议优先阅读 AI_AGENT_GUIDE.md）
-
----
-
-#### [`QUICKSTART.md`](QUICKSTART.md)
-**目标读者**: 新手  
-**内容**: 快速上手指南
-
-**何时阅读**: 第一次使用时
-
----
-
-## 🗺️ 阅读路径推荐
-
-### 路径 1: AI Agent 开发
-
-```
-1. AI_AGENT_GUIDE.md          (综合指南)
-2. SERVICE_INTEGRATION.md     (Service 架构)
-3. UUID_ENCODING.md           (UUID 编码)
-4. 开始开发
-```
-
-### 路径 2: 人类开发者入门
-
-```
-1. ../README.md               (项目介绍)
-2. QUICKSTART.md              (快速开始)
-3. BUILD_GUIDE.md             (编译部署)
-4. ARCHITECTURE.md            (架构理解)
-5. SERVICE_INTEGRATION.md     (Service 层)
-6. UUID_ENCODING.md           (核心功能)
-```
-
-### 路径 3: 快速修改
-
-```
-1. AI_AGENT_GUIDE.md          (快速参考)
-2. 相关具体文档
-```
-
----
-
-## 📊 文档状态
-
-| 文档 | 状态 | 最后更新 |
-|------|------|---------|
-| `AI_AGENT_GUIDE.md` | ✅ 最新 | 2026-05-29 |
-| `README.md` | ✅ 最新 | 2026-05-29 |
-| `SERVICE_INTEGRATION.md` | ✅ 最新 | 2026-05-29 |
-| `UUID_ENCODING.md` | ✅ 最新 | 2026-05-28 |
-| `ARCHITECTURE.md` | ✅ 最新 | 2026-05-29 |
-| `PROJECT_GUIDE.md` | ⚠️ 需更新 | - |
-| `BUILD_GUIDE.md` | ✅ 有效 | - |
-| `QUICKSTART.md` | ✅ 有效 | - |
-
----
-
-## 🔄 文档维护
-
-### 更新原则
-
-1. **重大变更必须更新文档**
-2. **优先更新 AI_AGENT_GUIDE.md**
-3. **保持文档同步**
-4. **标注更新日期**
-
-### 需要更新的情况
-
-- ✅ 添加新功能
-- ✅ 修改架构
-- ✅ 修复重要问题
-- ✅ 调整 UUID 编码
-- ✅ 重构代码
-
-### 文档优先级
-
-1. **AI_AGENT_GUIDE.md** - 最高优先级
-2. **README.md** - 高优先级
-3. **SERVICE_INTEGRATION.md** - 高优先级
-4. **UUID_ENCODING.md** - 高优先级
-5. 其他文档 - 按需更新
-
----
-
-**维护**: 请在更新文档后同步更新本索引  
-**版本**: 2.0.0  
-**最后更新**: 2026-05-29
-
----
-
-*本索引由 AI Agent 生成和维护*
-
----
-
-## 📋 文档详细说明
-
-### 核心文档
-
-#### [`AI_AGENT_GUIDE.md`](AI_AGENT_GUIDE.md)
-**目标读者**: AI Agent  
-**内容**:
-- 项目概述和当前状态
-- 完整技术架构
-- 设计系统（iOS 玻璃拟态）
-- 核心功能详解
-- 文件结构说明
-- 开发指南和常见任务
-- 已知问题和解决方案
-- 下一步工作清单
-- 快速参考和命令速查
-
-**何时阅读**: AI Agent 开始工作时的第一份文档
-
----
-
-#### [`../README.md`](../README.md)
-**目标读者**: 所有人  
-**内容**:
-- 项目简介和特性
-- 快速开始（编译、安装、测试）
-- 文档导航
-- 设计风格介绍
-- 项目结构
-- 控制协议说明
-- Intent 接口使用
-- MCP 服务集成
-
-**何时阅读**: 第一次接触项目时
-
----
-
-### 设计文档
-
-#### [`DESIGN_IOS_GLASSMORPHISM.md`](DESIGN_IOS_GLASSMORPHISM.md)
-**目标读者**: UI 开发者、设计师  
-**内容**:
-- 设计理念和目标
-- 核心颜色系统
-- 玻璃拟态组件详解
-- 页面布局规范
-- 视觉层级系统
-- 圆角、间距、阴影规范
-- 与构成主义设计的对比
-- 适配说明
-- 设计原则
-- 使用示例
-
-**何时阅读**: 需要修改 UI 或添加新页面时
-
----
-
-#### [`DESIGN_CONSTRUCTIVISM.md`](DESIGN_CONSTRUCTIVISM.md)
-**目标读者**: 了解历史  
-**状态**: ⚠️ 已废弃  
-**内容**: 旧的构成主义设计系统
-
-**何时阅读**: 仅作为历史参考，不建议使用
-
----
-
-### 技术文档
-
-#### [`ARCHITECTURE.md`](ARCHITECTURE.md)
-**目标读者**: 开发者  
-**内容**:
-- 技术栈
-- 架构模式
-- 模块划分
-- 数据流
-- 依赖关系
-
-**何时阅读**: 需要理解整体架构时
-
----
-
-#### [`UUID_ENCODING.md`](UUID_ENCODING.md)
-**目标读者**: 核心开发者  
-**内容**:
-- UUID 编码原理
-- 逆向方法
-- 参数映射
-- 编码示例
-- 调整步骤
-
-**何时阅读**: ⚠️ 必读！需要调整 BLE 广播编码时
-
----
-
-#### [`BUILD_GUIDE.md`](BUILD_GUIDE.md)
-**目标读者**: 开发者  
-**内容**:
-- 环境配置
-- 编译步骤
-- 部署方法
-- 常见问题
-
-**何时阅读**: 第一次编译项目时
-
----
-
-### 参考文档
-
-#### [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md)
-**目标读者**: 开发者  
-**内容**: 完整的项目指南（较旧，部分内容已过时）
-
-**何时阅读**: 需要详细了解项目时（建议优先阅读 AI_AGENT_GUIDE.md）
-
----
-
-#### [`UI_REDESIGN_SUMMARY.md`](UI_REDESIGN_SUMMARY.md)
-**目标读者**: 了解历史  
-**内容**:
-- UI 重构目标
-- 已完成的工作
-- 设计对比
-- 文件变更清单
-- 技术细节
-- 修复的问题
-
-**何时阅读**: 想了解 UI 重构过程时
-
----
-
-#### [`CRASH_FIX.md`](CRASH_FIX.md)
-**目标读者**: 问题排查  
-**内容**:
-- 已修复的问题
-- 修复步骤
-- 常见崩溃原因
-- 检查清单
-
-**何时阅读**: 遇到崩溃或编译错误时
-
----
-
-#### [`DEBUG_TIPS.md`](DEBUG_TIPS.md)
-**目标读者**: 开发者  
-**内容**: 调试技巧和工具使用
-
-**何时阅读**: 需要调试时
-
----
-
-#### [`QUICKSTART.md`](QUICKSTART.md)
-**目标读者**: 新手  
-**内容**: 快速上手指南
-
-**何时阅读**: 第一次使用时
-
----
-
-## �️ 阅读路径推荐
-
-### 路径 1: AI Agent 开发
-
-```
-1. AI_AGENT_GUIDE.md          (综合指南)
-2. DESIGN_IOS_GLASSMORPHISM.md (设计系统)
-3. UUID_ENCODING.md            (UUID 编码)
-4. 开始开发
-```
-
-### 路径 2: 人类开发者入门
-
-```
-1. ../README.md                (项目介绍)
-2. QUICKSTART.md               (快速开始)
-3. BUILD_GUIDE.md              (编译部署)
-4. ARCHITECTURE.md             (架构理解)
-5. DESIGN_IOS_GLASSMORPHISM.md (UI 开发)
-6. UUID_ENCODING.md            (核心功能)
-```
-
-### 路径 3: UI 设计师
-
-```
-1. ../README.md                (项目介绍)
-2. DESIGN_IOS_GLASSMORPHISM.md (设计系统)
-3. UI_REDESIGN_SUMMARY.md      (设计演变)
-```
-
-### 路径 4: 问题排查
-
-```
-1. CRASH_FIX.md                (已知问题)
-2. DEBUG_TIPS.md               (调试技巧)
-3. AI_AGENT_GUIDE.md           (快速参考)
-```
-
----
-
-## 📊 文档状态
-
-| 文档 | 状态 | 最后更新 | 维护者 |
+| 文档 | 用途 | 推荐对象 | 优先级 |
 |------|------|---------|--------|
-| `AI_AGENT_GUIDE.md` | ✅ 最新 | 2026-05-28 | AI Agent |
-| `README.md` | ✅ 最新 | 2026-05-28 | AI Agent |
-| `DESIGN_IOS_GLASSMORPHISM.md` | ✅ 最新 | 2026-05-28 | AI Agent |
-| `UUID_ENCODING.md` | ✅ 最新 | 2026-05-28 | - |
-| `UI_REDESIGN_SUMMARY.md` | ✅ 最新 | 2026-05-28 | AI Agent |
-| `CRASH_FIX.md` | ✅ 最新 | 2026-05-28 | AI Agent |
-| `ARCHITECTURE.md` | ⚠️ 部分过时 | - | - |
-| `PROJECT_GUIDE.md` | ⚠️ 部分过时 | - | - |
-| `BUILD_GUIDE.md` | ✅ 有效 | - | - |
-| `DEBUG_TIPS.md` | ✅ 有效 | - | - |
-| `QUICKSTART.md` | ✅ 有效 | - | - |
-| `DESIGN_CONSTRUCTIVISM.md` | ❌ 已废弃 | - | - |
+| [`MISSING_FEATURES_ANALYSIS.md`](MISSING_FEATURES_ANALYSIS.md) | 官方实现对比分析 | 开发者 | ⭐⭐⭐⭐⭐ |
+| [`UI_LOGIC_IMPROVEMENTS.md`](UI_LOGIC_IMPROVEMENTS.md) | UI和逻辑改进建议 | 开发者 | ⭐⭐⭐ |
+
+### ✅ 实施报告
+
+| 文档 | 用途 | 推荐对象 | 优先级 |
+|------|------|---------|--------|
+| [`PHASE1_FIXES_SUMMARY.md`](PHASE1_FIXES_SUMMARY.md) | 第一阶段修复总结 | 所有人 | ⭐⭐⭐⭐⭐ |
+| [`IMPLEMENTATION_COMPLETE.md`](IMPLEMENTATION_COMPLETE.md) | 实施完成报告 | 所有人 | ⭐⭐⭐⭐⭐ |
+| [`MIGRATION_SUMMARY.md`](MIGRATION_SUMMARY.md) | 迁移总结 | 开发者 | ⭐⭐⭐ |
+
+### 📝 项目管理
+
+| 文档 | 用途 | 推荐对象 | 优先级 |
+|------|------|---------|--------|
+| [`BUILD_GUIDE.md`](BUILD_GUIDE.md) | 构建和部署指南 | 开发者 | ⭐⭐⭐⭐ |
+| [`DOCS_CONSOLIDATION.md`](DOCS_CONSOLIDATION.md) | 文档整合说明 | 维护者 | ⭐⭐ |
 
 ---
 
-## 🔄 文档维护
+## 🎯 按场景查找
 
-### 更新原则
+### 我想快速开始
+1. [QUICKSTART.md](QUICKSTART.md) - 快速上手
+2. [BUILD_GUIDE.md](BUILD_GUIDE.md) - 构建应用
+3. [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - 快速参考
 
-1. **重大变更必须更新文档**
-2. **优先更新 AI_AGENT_GUIDE.md**
-3. **保持文档同步**
-4. **标注更新日期**
+### 我想了解BLE协议
+1. [BLE_PROTOCOL_DAXIU.md](BLE_PROTOCOL_DAXIU.md) - 协议文档
+2. [UUID_ENCODING.md](UUID_ENCODING.md) - UUID编码
+3. [MISSING_FEATURES_ANALYSIS.md](MISSING_FEATURES_ANALYSIS.md) - 深度分析
 
-### 需要更新的情况
+### 我想修复问题
+1. [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - 快速诊断
+2. [PHASE1_FIXES_SUMMARY.md](PHASE1_FIXES_SUMMARY.md) - 已知修复
+3. [IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md) - 完整报告
+4. [BLE_IMPROVEMENTS_NEEDED.md](BLE_IMPROVEMENTS_NEEDED.md) - 改进清单
 
-- ✅ 添加新功能
-- ✅ 修改架构
-- ✅ 更改设计系统
-- ✅ 修复重要问题
-- ✅ 调整 UUID 编码
-- ✅ 重构代码
+### 我想了解架构
+1. [ARCHITECTURE.md](ARCHITECTURE.md) - 系统架构
+2. [SERVICE_INTEGRATION.md](SERVICE_INTEGRATION.md) - 服务集成
+3. [PROJECT_GUIDE.md](PROJECT_GUIDE.md) - 项目结构
 
-### 文档优先级
+### 我想改进UI
+1. [UI_LOGIC_IMPROVEMENTS.md](UI_LOGIC_IMPROVEMENTS.md) - UI改进建议
+2. [MISSING_FEATURES_ANALYSIS.md](MISSING_FEATURES_ANALYSIS.md) - 功能对比
 
-1. **AI_AGENT_GUIDE.md** - 最高优先级
-2. **README.md** - 高优先级
-3. **DESIGN_IOS_GLASSMORPHISM.md** - 高优先级
-4. **UUID_ENCODING.md** - 高优先级
-5. 其他文档 - 按需更新
+---
+
+## 📖 阅读顺序建议
+
+### 新手入门
+1. QUICKSTART.md
+2. BUILD_GUIDE.md
+3. QUICK_REFERENCE.md
+4. ARCHITECTURE.md
+5. BLE_PROTOCOL_DAXIU.md
+
+### 问题排查
+1. QUICK_REFERENCE.md
+2. PHASE1_FIXES_SUMMARY.md
+3. IMPLEMENTATION_COMPLETE.md
+4. BLE_IMPROVEMENTS_NEEDED.md
+
+### 深度开发
+1. ARCHITECTURE.md
+2. BLE_PROTOCOL_DAXIU.md
+3. MISSING_FEATURES_ANALYSIS.md
+4. UI_LOGIC_IMPROVEMENTS.md
+5. SERVICE_INTEGRATION.md
+
+---
+
+## 🆕 最新更新（第一阶段修复）
+
+### 新增文档
+- **[MISSING_FEATURES_ANALYSIS.md](MISSING_FEATURES_ANALYSIS.md)** - 深度对比官方实现，找出15个关键差异
+- **[PHASE1_FIXES_SUMMARY.md](PHASE1_FIXES_SUMMARY.md)** - 第一阶段核心修复总结
+- **[IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md)** - 完整的实施报告和测试指南
+- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - 快速参考卡片
+
+### 核心修复
+1. ✅ **设备ID持久化** - 解决设备无法识别的问题
+2. ✅ **校验和边界处理** - 修复单字符十六进制的特殊情况
+3. ✅ **代码重构** - 提取扩展函数，提高可维护性
+4. ✅ **单元测试** - 15个测试用例覆盖核心功能
+
+### 新增代码
+- `app/src/main/java/aya/strokenet/utils/BleExtensions.kt` - BLE扩展函数库
+- `app/src/test/java/aya/strokenet/DaxiuCommandTest.kt` - 单元测试
+
+### 修改代码
+- `app/src/main/java/aya/strokenet/ble/DaxiuCommand.kt` - 完全重写
+- `app/src/main/java/aya/strokenet/ble/DaxiuBleAdvertiser.kt` - API更新
+- `app/src/main/java/aya/strokenet/BleService.kt` - 使用新API
+
+---
+
+## 📝 文档维护
+
+### 文档状态
+- ✅ 最新 - 与代码同步
+- ⚠️ 部分过时 - 需要更新
+- ❌ 已废弃 - 不再使用
+
+### 当前状态
+| 文档 | 状态 | 最后更新 |
+|------|------|----------|
+| QUICKSTART.md | ✅ | 2024 |
+| QUICK_REFERENCE.md | ✅ | 2024 |
+| BUILD_GUIDE.md | ✅ | 2024 |
+| ARCHITECTURE.md | ✅ | 2024 |
+| BLE_PROTOCOL_DAXIU.md | ✅ | 2024 |
+| MISSING_FEATURES_ANALYSIS.md | ✅ | 2024 |
+| PHASE1_FIXES_SUMMARY.md | ✅ | 2024 |
+| IMPLEMENTATION_COMPLETE.md | ✅ | 2024 |
+| UI_LOGIC_IMPROVEMENTS.md | ✅ | 2024 |
+
+---
+
+## 🔗 外部资源
+
+### 官方文档
+- [Android BLE Guide](https://developer.android.com/guide/topics/connectivity/bluetooth-le)
+- [Jetpack Compose](https://developer.android.com/jetpack/compose)
+- [Kotlin Coroutines](https://kotlinlang.org/docs/coroutines-overview.html)
+
+### 工具
+- [nRF Connect](https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile) - BLE扫描工具
+- [Android Studio](https://developer.android.com/studio) - 开发环境
 
 ---
 
 ## 📞 获取帮助
 
-### 文档问题
+### 问题排查
+1. 查看 [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
+2. 查看 [IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md) 的故障排查部分
+3. 检查日志: `adb logcat -s BleService DaxiuBleAdvertiser`
 
-如果文档有错误、过时或不清楚：
-1. 检查文档状态（见上方表格）
-2. 查看相关的其他文档
-3. 更新文档内容
-
-### 技术问题
-
-1. 先查看 `CRASH_FIX.md`
-2. 再查看 `DEBUG_TIPS.md`
-3. 最后查看 `AI_AGENT_GUIDE.md` 的问题排查章节
+### 贡献文档
+1. 遵循现有文档的格式
+2. 使用清晰的标题和章节
+3. 包含代码示例
+4. 更新本索引文件
 
 ---
 
-## 🎯 文档改进建议
-
-### 待完善的文档
-
-- [ ] 更新 `ARCHITECTURE.md` 以反映当前架构
-- [ ] 更新 `PROJECT_GUIDE.md` 以反映 iOS 设计
-- [ ] 添加更多调试技巧到 `DEBUG_TIPS.md`
-- [ ] 添加性能优化文档
-- [ ] 添加测试文档
-
-### 可以删除的文档
-
-- `DESIGN_CONSTRUCTIVISM.md` - 已废弃的设计系统
-- 或保留作为历史参考
-
----
-
-**维护**: 请在更新文档后同步更新本索引  
-**版本**: 1.0.0  
-**最后更新**: 2026-05-28
-
----
-
-*本索引由 AI Agent 生成和维护*
+**最后更新**: 2024年  
+**文档版本**: 2.0 - 第一阶段修复完成
