@@ -80,17 +80,6 @@ class BleService : Service() {
         
         Log.d(TAG, "Received action: $action")
         
-        // 特殊处理停止指令
-        if (action == ACTION_STOP) {
-            isRunning = false
-            sendWithRetry(
-                action = action,
-                description = "停止",
-                shouldStopService = true // 停止后关闭服务
-            )
-            return
-        }
-        
         when (action) {
             ACTION_SEND_ALL -> {
                 // 批量发送所有参数
