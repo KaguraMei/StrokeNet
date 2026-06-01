@@ -362,7 +362,7 @@ cloudflared tunnel --url http://localhost:3459
 ## 🔧 开发
 
 ### 系统要求
-- Android 12 (API 31) 或更高版本
+- Android 7 (API 24) 或更高版本
 - JDK 11+
 - Android SDK
 - 支持 BLE 的设备
