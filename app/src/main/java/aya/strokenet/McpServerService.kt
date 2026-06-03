@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import aya.strokenet.mcp.createStrokeNetMcpServer
@@ -58,10 +59,71 @@ class McpServerService : Service() {
     private var currentStatus = "stopped"
     private var currentError: String? = null
     
+    // 电源锁：防止 CPU 休眠和 WiFi 降速
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var wifiLock: WifiManager.WifiLock? = null
+    
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        acquireLocks()
         Log.d(TAG, "MCP Server Service created")
+    }
+    
+    /**
+     * 申请 WakeLock 和 WifiLock，防止 CPU 休眠和 WiFi 降速
+     */
+    private fun acquireLocks() {
+        try {
+            // 1. CPU 锁：防止 CPU 进入休眠（PARTIAL_WAKE_LOCK 只保持 CPU 运行，不点亮屏幕）
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "StrokeNet::McpWakeLock"
+            ).apply {
+                acquire()
+            }
+            Log.d(TAG, "WakeLock acquired")
+            
+            // 2. WiFi 锁：防止 WiFi 进入省电模式（WIFI_MODE_FULL_HIGH_PERF 保持高性能模式）
+            val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            wifiLock = wifiManager.createWifiLock(
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                "StrokeNet::McpWifiLock"
+            ).apply {
+                acquire()
+            }
+            Log.d(TAG, "WifiLock acquired (high performance mode)")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to acquire locks", e)
+        }
+    }
+    
+    /**
+     * 释放电源锁
+     */
+    private fun releaseLocks() {
+        try {
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.d(TAG, "WakeLock released")
+                }
+            }
+            wakeLock = null
+            
+            wifiLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.d(TAG, "WifiLock released")
+                }
+            }
+            wifiLock = null
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to release locks", e)
+        }
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -521,6 +583,9 @@ class McpServerService : Service() {
         } catch (e: Exception) {
             Log.w(TAG, "Error stopping Ktor in onDestroy: ${e.message}")
         }
+        
+        // 释放电源锁
+        releaseLocks()
         
         serviceScope.cancel()
         Log.d(TAG, "Service destroyed")

@@ -21,6 +21,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    
+    <!-- 电源锁：防止 CPU 休眠和 WiFi 降速 (MCP Server 后台保活) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
 
