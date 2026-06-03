@@ -16,6 +16,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.pipeline.*
 import io.modelcontextprotocol.kotlin.sdk.server.mcpStreamableHttp
 import kotlinx.coroutines.*
 import java.io.BufferedReader
@@ -214,14 +215,22 @@ class McpServerService : Service() {
             ktorServer = embeddedServer(Netty, port = port) {
                 // 安装 CORS (支持浏览器客户端如 MCP Inspector)
                 install(CORS) {
-                    anyHost()
+                    anyHost()  // 允许任何主机访问（包括局域网 IP）
                     allowMethod(HttpMethod.Options)
                     allowMethod(HttpMethod.Get)
                     allowMethod(HttpMethod.Post)
                     allowMethod(HttpMethod.Delete)
+                    allowMethod(HttpMethod.Put)
+                    allowMethod(HttpMethod.Patch)
                     allowNonSimpleContentTypes = true
+                    allowCredentials = true
+                    // MCP 协议相关 Header
                     allowHeader("Mcp-Session-Id")
                     allowHeader("Mcp-Protocol-Version")
+                    allowHeader(HttpHeaders.ContentType)
+                    allowHeader(HttpHeaders.Authorization)
+                    allowHeader(HttpHeaders.Accept)
+                    allowHeader(HttpHeaders.Host)
                     exposeHeader("Mcp-Session-Id")
                     exposeHeader("Mcp-Protocol-Version")
                 }
@@ -232,14 +241,34 @@ class McpServerService : Service() {
                         call.respondText("StrokeNet MCP Server Running", ContentType.Text.Plain)
                     }
                     
-                    // 使用 SDK 的 Streamable HTTP 扩展挂载 MCP
-                    mcpStreamableHttp(path = "/mcp") {
-                        mcpServer
+                    // MCP 路由组，在此处理 Host header 问题
+                    route("/mcp") {
+                        // 在 MCP SDK 处理之前拦截请求
+                        intercept(ApplicationCallPipeline.Call) {
+                            val originalHost = call.request.headers["Host"]
+                            val method = call.request.local.method.value
+                            Log.d(TAG, "MCP Request - Original Host: $originalHost, Method: $method")
+                            
+                            // 如果 Host 是 IP 地址（局域网访问），允许通过
+                            // MCP SDK 会检查 Host，我们这里做一个日志记录
+                            // 实际的 Host 处理由 SDK 完成，我们只是记录和监控
+                            if (originalHost != null && originalHost.matches(Regex("^\\d+\\.\\d+\\.\\d+\\.\\d+(:\\d+)?\$"))) {
+                                Log.d(TAG, "Accepting LAN request from IP: $originalHost")
+                            }
+                            
+                            proceed()
+                        }
+                        
+                        // 使用 SDK 的 Streamable HTTP 扩展挂载 MCP
+                        // 注意：mcpStreamableHttp 会自动处理所有 MCP 协议相关的逻辑
+                        mcpStreamableHttp {
+                            mcpServer
+                        }
                     }
                 }
             }.start(wait = false)
             
-            Log.d(TAG, "Ktor server started on port $port with MCP SDK")
+            Log.d(TAG, "Ktor server started on port $port with MCP SDK (LAN access enabled)")
             
         } catch (e: Exception) {
             val errorMsg = when {
