@@ -100,7 +100,7 @@ private fun InfoCard() {
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = "Model Context Protocol（模型上下文协议）服务，允许 AI 助手（Claude Desktop、Kiro）通过网络远程控制设备。",
+            text = "Model Context Protocol（模型上下文协议）服务，让 AI 助手能够通过局域网远程控制你的设备。",
             fontSize = 14.sp,
             color = iOSTextSecondary,
             lineHeight = 20.sp
@@ -109,19 +109,68 @@ private fun InfoCard() {
         Spacer(modifier = Modifier.height(12.dp))
         
         Text(
-            text = "使用方法：",
+            text = "✨ 快速开始：",
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             color = iOSTextPrimary
         )
         
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         
         Text(
-            text = "1. 点击下方「启动服务」按钮\n2. 复制显示的服务地址\n3. 在 AI 工具（如 Claude Desktop）的 MCP 配置中添加该地址\n4. 重启 AI 工具后即可使用",
+            text = """
+                1️⃣ 启动服务 - 点击下方「启动服务」按钮
+                2️⃣ 复制地址 - 复制显示的服务地址
+                3️⃣ 配置 AI - 在 AI 工具中添加该地址
+                4️⃣ 开始使用 - 重启 AI 后即可语音控制
+            """.trimIndent(),
             fontSize = 13.sp,
             color = iOSTextSecondary,
             lineHeight = 19.sp
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // 配置示例
+        Surface(
+            color = iOSTextSecondary.copy(alpha = 0.05f),
+            shape = MaterialTheme.shapes.small
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "💡 Claude Desktop 配置示例：",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = iOSTextPrimary
+                )
+                
+                Text(
+                    text = """
+                        {
+                          "mcpServers": {
+                            "strokenet": {
+                              "command": "none",
+                              "url": "http://你的IP:8080/mcp"
+                            }
+                          }
+                        }
+                    """.trimIndent(),
+                    fontSize = 11.sp,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    color = iOSTextSecondary
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = "⚠️ 注意：手机和 AI 工具设备需要在同一 WiFi 网络下",
+            fontSize = 12.sp,
+            color = iOSTextSecondary.copy(alpha = 0.8f)
         )
     }
 }
@@ -328,50 +377,205 @@ private fun ControlCard(
 }
 
 /**
- * 工具列表说明
+ * 工具列表说明（完整能力清单）
  */
 @Composable
 private fun ToolsInfoCard() {
     GlassPanel {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Build,
+                contentDescription = null,
+                tint = iOSBlue,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = "MCP 工具能力清单",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = iOSTextPrimary
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
         Text(
-            text = "可用工具",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = iOSTextPrimary
+            text = "AI 可通过以下 20 个工具远程控制设备：",
+            fontSize = 13.sp,
+            color = iOSTextSecondary
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 分组显示工具
+        ToolCategory(
+            title = "📖 必读指南",
+            tools = listOf(
+                ToolItem("get_device_guide", "设备控制专家指南", "包含参数说明和推荐模式")
+            )
         )
         
         Spacer(modifier = Modifier.height(12.dp))
         
-        val tools = listOf(
-            "thrust - 控制推拉",
-            "strength - 设置震动强度",
-            "start_heating - 启动加热",
-            "stop_heating - 停止加热",
-            "send_all - 批量发送参数",
-            "stop_all - 全部停止"
+        ToolCategory(
+            title = "🎮 基础控制（推荐优先使用 send_all）",
+            tools = listOf(
+                ToolItem("send_all", "一键设置所有参数", "推拉+震动，最高效", isHighlighted = true),
+                ToolItem("thrust", "控制推拉运动", "深度、伸展速度、收缩速度"),
+                ToolItem("strength", "设置震动强度", "1-100 可调")
+            )
         )
         
-        tools.forEach { tool ->
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        ToolCategory(
+            title = "🔥 加热功能",
+            tools = listOf(
+                ToolItem("start_heating", "启动定时加热", "需指定温度和时长"),
+                ToolItem("stop_heating", "停止加热", "手动停止加热")
+            )
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        ToolCategory(
+            title = "⏹️ 停止控制",
+            tools = listOf(
+                ToolItem("stop_all", "全部停止", "推拉+震动+预设", isHighlighted = true),
+                ToolItem("stop_thrust", "停止推拉", ""),
+                ToolItem("stop_strength", "停止震动", ""),
+                ToolItem("stop_preset", "停止循环预设", "")
+            )
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        ToolCategory(
+            title = "🎯 预设管理（10个工具）",
+            tools = listOf(
+                ToolItem("list_presets", "列出所有预设", "必须先调用此工具获取ID"),
+                ToolItem("run_preset", "运行循环预设", "无限循环直到停止"),
+                ToolItem("get_official_presets", "获取官方预设详情", ""),
+                ToolItem("get_custom_presets", "获取自定义预设详情", ""),
+                ToolItem("get_preset_detail", "查看预设动作参数", ""),
+                ToolItem("create_custom_preset", "创建自定义预设", ""),
+                ToolItem("update_custom_preset", "更新自定义预设", ""),
+                ToolItem("delete_custom_preset", "删除自定义预设", ""),
+                ToolItem("export_custom_presets", "导出预设为JSON", ""),
+                ToolItem("import_custom_presets", "从JSON导入预设", "")
+            )
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 提示信息
+        Surface(
+            color = iOSBlue.copy(alpha = 0.08f),
+            shape = MaterialTheme.shapes.medium
+        ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(vertical = 4.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Build,
+                    imageVector = Icons.Default.Lightbulb,
                     contentDescription = null,
-                    tint = iOSTextSecondary,
-                    modifier = Modifier.size(16.dp)
+                    tint = iOSBlue,
+                    modifier = Modifier.size(18.dp)
                 )
                 Text(
-                    text = tool,
-                    fontSize = 13.sp,
-                    color = iOSTextSecondary
+                    text = "AI 首次连接时会自动调用 get_device_guide 获取使用说明",
+                    fontSize = 12.sp,
+                    color = iOSTextSecondary,
+                    lineHeight = 16.sp
                 )
             }
         }
     }
 }
+
+/**
+ * 工具分类展示
+ */
+@Composable
+private fun ToolCategory(
+    title: String,
+    tools: List<ToolItem>
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = iOSTextPrimary
+        )
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        tools.forEach { tool ->
+            ToolRow(tool)
+        }
+    }
+}
+
+/**
+ * 工具行
+ */
+@Composable
+private fun ToolRow(tool: ToolItem) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = if (tool.isHighlighted) Icons.Default.Star else Icons.Default.Circle,
+            contentDescription = null,
+            tint = if (tool.isHighlighted) iOSBlue else iOSTextSecondary.copy(alpha = 0.5f),
+            modifier = Modifier.size(12.dp).padding(top = 2.dp)
+        )
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = tool.name,
+                fontSize = 13.sp,
+                fontWeight = if (tool.isHighlighted) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (tool.isHighlighted) iOSBlue else iOSTextPrimary
+            )
+            
+            if (tool.description.isNotEmpty()) {
+                Text(
+                    text = tool.description,
+                    fontSize = 12.sp,
+                    color = iOSTextSecondary
+                )
+            }
+            
+            if (tool.note.isNotEmpty()) {
+                Text(
+                    text = tool.note,
+                    fontSize = 11.sp,
+                    color = iOSTextSecondary.copy(alpha = 0.7f),
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 工具数据类
+ */
+private data class ToolItem(
+    val name: String,
+    val description: String,
+    val note: String = "",
+    val isHighlighted: Boolean = false
+)
 
 /**
  * 复制到剪贴板

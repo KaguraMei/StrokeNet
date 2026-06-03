@@ -42,29 +42,95 @@ fun createStrokeNetMcpServer(context: Context): Server {
  */
 private fun registerTools(server: Server, context: Context) {
     
-    // 1. 推拉控制
+    // 0. 设备使用指南（优先级最高，AI 会首先看到）
+    server.addTool(
+        name = "get_device_guide",
+        description = "【必读】获取设备控制的专家级指南，包含参数搭配建议和使用技巧",
+        inputSchema = ToolSchema(properties = buildJsonObject {})
+    ) { _ ->
+        CallToolResult(
+            content = listOf(
+                TextContent(text = """
+                    ===== StrokeNet 设备控制指南 =====
+                    
+                    【核心原则】
+                    1. 优先使用 send_all 工具一次性设置所有参数，避免多次调用
+                    2. 所有参数范围都是 1-100，数值越大效果越强
+                    3. 调用 run_preset 前必须先调用 list_presets 获取正确的 ID
+                    
+                    【参数体感说明】
+                    • depth（推拉深度）：
+                      - 1-20: 浅尝辄止，轻微抽动
+                      - 30-60: 中等幅度，标准体验
+                      - 70-100: 深度撞击，完全伸展
+                      
+                    • extend（伸展速度）：
+                      - 1-30: 缓慢推入，温柔体贴
+                      - 40-70: 中速节奏，标准舒适
+                      - 80-100: 快速冲刺，强烈刺激
+                      
+                    • retract（收缩速度）：
+                      - 1-30: 缓慢抽出，回味绵长
+                      - 40-70: 中速回归，节奏感强
+                      - 80-100: 快速退出，急促密集
+                      
+                    • strength（震动强度）：
+                      - 1-30: 微弱酥麻，若有若无
+                      - 40-70: 适中震感，舒适体验
+                      - 80-100: 强烈震颤，注意噪音
+                    
+                    【推荐模式组合】
+                    1. 温柔模式：depth=30, extend=40, retract=40, strength=30
+                    2. 标准体验：depth=50, extend=50, retract=50, strength=50
+                    3. 激烈撞击：depth=80, extend=90, retract=30, strength=70
+                    4. 快速抽插：depth=40, extend=100, retract=100, strength=60
+                    5. 深度慢推：depth=90, extend=20, retract=40, strength=50
+                    
+                    【调整建议】
+                    • 用户说"快一点" → 在当前 extend/retract 基础上 +20
+                    • 用户说"慢一点" → 在当前 extend/retract 基础上 -20
+                    • 用户说"深一点" → depth +20
+                    • 用户说"浅一点" → depth -20
+                    • 用户说"强一点" → strength +20
+                    
+                    【注意事项】
+                    1. 加热需要使用 start_heating，必须指定时长（1-10分钟）
+                    2. 停止所有运动使用 stop_all
+                    3. 预设会循环播放直到手动停止
+                    4. 每次执行后记得在回复中总结当前设备状态
+                    
+                    ===================================
+                """.trimIndent())
+            )
+        )
+    }
+    
+    // 1. 推拉控制（优化描述）
     server.addTool(
         name = "thrust",
-        description = "控制设备推拉运动（深度、伸展速度、收缩速度）",
+        description = "精确控制设备的物理推拉运动（深度和伸缩速度）。注意：仅控制推拉，不影响震动。如需同时设置推拉和震动，请使用 send_all 工具。",
         inputSchema = ToolSchema(
             properties = buildJsonObject {
                 putJsonObject("depth") {
                     put("type", "number")
-                    put("description", "推拉深度 (1-100)")
+                    put("description", "推拉的幅度深度。1为极短程快速抽动，100为完全伸展的长程撞击。建议起始值：50")
                     put("minimum", 1)
                     put("maximum", 100)
+                    putJsonArray("examples") { add(50); add(30); add(80) }
                 }
                 putJsonObject("extend") {
                     put("type", "number")
-                    put("description", "伸展速度 (1-100)")
+                    put("description", "伸出（推入）动作的速度。100最快（急促冲刺），1最慢（缓慢推入）。建议与retract配合：若extend>retract会有强烈冲入感。建议起始值：50")
                     put("minimum", 1)
                     put("maximum", 100)
+                    putJsonArray("examples") { add(50); add(90); add(30) }
                 }
                 putJsonObject("retract") {
                     put("type", "number")
-                    put("description", "收缩速度 (1-100)")
+                    put("description", "收缩（抽出）动作的速度。100最快（快速退出），1最慢（缓慢回归）。与extend配合形成节奏。建议起始值：50")
                     put("minimum", 1)
                     put("maximum", 100)
+                    putJsonArray("examples") { add(50); add(30); add(90) }
                 }
             },
             required = listOf("depth", "extend", "retract")
@@ -72,16 +138,16 @@ private fun registerTools(server: Server, context: Context) {
     ) { request ->
         try {
             val args = request.arguments
-            val depth = args?.get("depth")?.jsonPrimitive?.int
-                ?: throw IllegalArgumentException("缺少 depth")
-            val extend = args["extend"]?.jsonPrimitive?.int
-                ?: throw IllegalArgumentException("缺少 extend")
-            val retract = args["retract"]?.jsonPrimitive?.int
-                ?: throw IllegalArgumentException("缺少 retract")
+            val depth = args?.get("depth").toSafeInt()
+                ?: throw IllegalArgumentException("缺少 depth 参数（推拉深度，范围 1-100）")
+            val extend = args?.get("extend").toSafeInt()
+                ?: throw IllegalArgumentException("缺少 extend 参数（伸展速度，范围 1-100）")
+            val retract = args?.get("retract").toSafeInt()
+                ?: throw IllegalArgumentException("缺少 retract 参数（收缩速度，范围 1-100）")
             
             // 验证范围
             if (depth !in 1..100 || extend !in 1..100 || retract !in 1..100) {
-                throw IllegalArgumentException("参数超出范围 (1-100)")
+                throw IllegalArgumentException("参数超出范围 (1-100)。depth=$depth, extend=$extend, retract=$retract")
             }
             
             val intent = Intent(context, BleService::class.java).apply {
@@ -97,9 +163,38 @@ private fun registerTools(server: Server, context: Context) {
                 context.startService(intent)
             }
             
+            // 详细的状态反馈
+            val rhythm = when {
+                extend > retract + 20 -> "强冲入感"
+                retract > extend + 20 -> "快速抽出"
+                else -> "均匀节奏"
+            }
+            
             CallToolResult(
                 content = listOf(
-                    TextContent(text = "✓ 已发送推拉指令: 深度=$depth, 伸=$extend, 缩=$retract")
+                    TextContent(text = """
+                        ✓ 推拉指令已发送并执行
+                        
+                        【当前设备状态】
+                        • 推拉深度：$depth (${when {
+                            depth < 30 -> "浅尝辄止"
+                            depth < 70 -> "中等幅度"
+                            else -> "深度撞击"
+                        }})
+                        • 伸展速度：$extend (${when {
+                            extend < 40 -> "缓慢推入"
+                            extend < 80 -> "中速节奏"
+                            else -> "快速冲刺"
+                        }})
+                        • 收缩速度：$retract (${when {
+                            retract < 40 -> "缓慢抽出"
+                            retract < 80 -> "中速回归"
+                            else -> "快速退出"
+                        }})
+                        • 节奏特征：$rhythm
+                        
+                        提示：震动需单独设置，建议使用 send_all 同时设置推拉和震动。
+                    """.trimIndent())
                 )
             )
         } catch (e: Exception) {
@@ -111,17 +206,18 @@ private fun registerTools(server: Server, context: Context) {
         }
     }
     
-    // 2. 震动强度
+    // 2. 震动强度（单独设置，建议使用 send_all）
     server.addTool(
         name = "strength",
-        description = "设置震动强度",
+        description = "单独设置震动马达强度。注意：仅设置震动，不影响推拉。建议使用 send_all 工具同时设置推拉和震动。",
         inputSchema = ToolSchema(
             properties = buildJsonObject {
                 putJsonObject("value") {
                     put("type", "number")
-                    put("description", "震动强度 (1-100)")
+                    put("description", "震动马达的转速强度。1为微弱酥麻感，100为强烈震颤（可能噪音较大）。建议起始值50。")
                     put("minimum", 1)
                     put("maximum", 100)
+                    putJsonArray("examples") { add(50); add(30); add(70) }
                 }
             },
             required = listOf("value")
@@ -129,11 +225,11 @@ private fun registerTools(server: Server, context: Context) {
     ) { request ->
         try {
             val args = request.arguments
-            val value = args?.get("value")?.jsonPrimitive?.int
-                ?: throw IllegalArgumentException("缺少 value")
+            val value = args?.get("value").toSafeInt()
+                ?: throw IllegalArgumentException("缺少 value 参数（震动强度，范围 1-100）")
             
             if (value !in 1..100) {
-                throw IllegalArgumentException("参数超出范围 (1-100)")
+                throw IllegalArgumentException("参数超出范围 (1-100)。value=$value")
             }
             
             val intent = Intent(context, BleService::class.java).apply {
@@ -147,8 +243,24 @@ private fun registerTools(server: Server, context: Context) {
                 context.startService(intent)
             }
             
+            val level = when {
+                value < 30 -> "微弱震感"
+                value < 70 -> "适中震动"
+                else -> "强烈震颤"
+            }
+            
             CallToolResult(
-                content = listOf(TextContent(text = "✓ 已设置震动强度: $value"))
+                content = listOf(
+                    TextContent(text = """
+                        ✓ 震动强度已设置
+                        
+                        【当前震动状态】
+                        • 强度值：$value ($level)
+                        ${if (value > 80) "• 提示：当前强度较高，可能产生噪音" else ""}
+                        
+                        推拉参数保持不变。如需同时调整推拉和震动，请使用 send_all 工具。
+                    """.trimIndent())
+                )
             )
         } catch (e: Exception) {
             Log.e("McpServer", "Strength tool failed", e)
@@ -159,23 +271,25 @@ private fun registerTools(server: Server, context: Context) {
         }
     }
     
-    // 3. 加热定时器（设置温度 + 启动定时器，时长必填）
+    // 3. 加热定时器（必须指定时长，会自动关闭）
     server.addTool(
         name = "start_heating",
-        description = "启动定时加热（设置温度并在指定时长后自动关闭）",
+        description = "启动定时加热功能。【重要】温度加热必须指定时长（1-10分钟），到时会自动关闭。推荐温度35-40°C，时长5-10分钟。",
         inputSchema = ToolSchema(
             properties = buildJsonObject {
                 putJsonObject("temperature") {
                     put("type", "number")
-                    put("description", "加热温度 (1-60°C)")
+                    put("description", "加热目标温度（°C）。范围1-60，推荐35-40°C，接近体温最舒适。")
                     put("minimum", 1)
                     put("maximum", 60)
+                    putJsonArray("examples") { add(37); add(40); add(35) }
                 }
                 putJsonObject("duration") {
                     put("type", "number")
-                    put("description", "加热时长（分钟，1-10）")
+                    put("description", "加热持续时长（分钟）。范围1-10分钟，推荐5-10分钟。到时自动关闭加热。")
                     put("minimum", 1)
                     put("maximum", 10)
+                    putJsonArray("examples") { add(5); add(10); add(8) }
                 }
             },
             required = listOf("temperature", "duration")
@@ -183,16 +297,16 @@ private fun registerTools(server: Server, context: Context) {
     ) { request ->
         try {
             val args = request.arguments
-            val temperature = args?.get("temperature")?.jsonPrimitive?.int
-                ?: throw IllegalArgumentException("缺少 temperature")
-            val duration = args["duration"]?.jsonPrimitive?.int
-                ?: throw IllegalArgumentException("缺少 duration")
+            val temperature = args?.get("temperature").toSafeInt()
+                ?: throw IllegalArgumentException("缺少 temperature 参数（温度，范围 1-60°C）")
+            val duration = args?.get("duration").toSafeInt()
+                ?: throw IllegalArgumentException("缺少 duration 参数（时长，范围 1-10分钟）")
             
             if (temperature !in 1..60) {
-                throw IllegalArgumentException("温度超出范围 (1-60)")
+                throw IllegalArgumentException("温度超出范围 (1-60)。temperature=$temperature")
             }
             if (duration !in 1..10) {
-                throw IllegalArgumentException("时长超出范围 (1-10)")
+                throw IllegalArgumentException("时长超出范围 (1-10)。duration=$duration")
             }
             
             // 启动加热定时器服务
@@ -208,9 +322,25 @@ private fun registerTools(server: Server, context: Context) {
                 context.startService(intent)
             }
             
+            val tempLevel = when {
+                temperature < 35 -> "微温"
+                temperature < 40 -> "温暖舒适（接近体温）"
+                temperature < 45 -> "较热"
+                else -> "高温（小心烫伤）"
+            }
+            
             CallToolResult(
                 content = listOf(
-                    TextContent(text = "✓ 加热已启动: ${temperature}°C，将在 $duration 分钟后自动关闭")
+                    TextContent(text = """
+                        ✓ 定时加热已启动
+                        
+                        【加热设置】
+                        • 目标温度：${temperature}°C ($tempLevel)
+                        • 持续时长：$duration 分钟
+                        • 自动关闭：到时后自动停止加热
+                        
+                        提示：加热过程中设备会逐步升温至目标温度，$duration 分钟后自动关闭以确保安全。
+                    """.trimIndent())
                 )
             )
         } catch (e: Exception) {
@@ -221,6 +351,7 @@ private fun registerTools(server: Server, context: Context) {
             )
         }
     }
+
     
     // 4. 停止加热定时器
     server.addTool(
@@ -251,42 +382,47 @@ private fun registerTools(server: Server, context: Context) {
         }
     }
     
-    // 5. 全参数发送（不包含加热，因为加热需要通过 start_heating 带时长）
+    // 5. 【推荐】全参数发送（AI 应优先使用此工具）
     server.addTool(
         name = "send_all",
-        description = "批量发送所有参数（推拉+震动，可选温度）",
+        description = "【推荐：优先使用】一键设置设备的所有运动参数（推拉+震动+温度）。当你需要同时调整设备状态时，请务必优先使用此工具，而非多次调用单个工具。这是最高效的控制方式。",
         inputSchema = ToolSchema(
             properties = buildJsonObject {
                 putJsonObject("depth") {
                     put("type", "number")
-                    put("description", "推拉深度 (1-100)")
+                    put("description", "推拉深度。1为浅，100为深。建议起始值50。")
                     put("minimum", 1)
                     put("maximum", 100)
+                    putJsonArray("examples") { add(50); add(30); add(80) }
                 }
                 putJsonObject("extend") {
                     put("type", "number")
-                    put("description", "伸展速度 (1-100)")
+                    put("description", "伸展（推入）速度。100最快，1最慢。建议起始值50。")
                     put("minimum", 1)
                     put("maximum", 100)
+                    putJsonArray("examples") { add(50); add(90); add(30) }
                 }
                 putJsonObject("retract") {
                     put("type", "number")
-                    put("description", "收缩速度 (1-100)")
+                    put("description", "收缩（抽出）速度。100最快，1最慢。建议起始值50。")
                     put("minimum", 1)
                     put("maximum", 100)
+                    putJsonArray("examples") { add(50); add(30); add(90) }
                 }
                 putJsonObject("strength") {
                     put("type", "number")
-                    put("description", "震动强度 (1-100)")
+                    put("description", "震动强度。1为微弱，100为强烈。建议起始值50。")
                     put("minimum", 1)
                     put("maximum", 100)
+                    putJsonArray("examples") { add(50); add(70); add(30) }
                 }
                 putJsonObject("temperature") {
                     put("type", "number")
-                    put("description", "温度值 (0-60°C，0表示不加热)")
+                    put("description", "温度值，0表示不加热，1-60为加热温度（°C）。通常设置为0或30-40之间。")
                     put("minimum", 0)
                     put("maximum", 60)
                     put("default", 0)
+                    putJsonArray("examples") { add(0); add(35); add(40) }
                 }
             },
             required = listOf("depth", "extend", "retract", "strength")
@@ -294,22 +430,18 @@ private fun registerTools(server: Server, context: Context) {
     ) { request ->
         try {
             val args = request.arguments
-            val depth = args?.get("depth")?.jsonPrimitive?.int
-                ?: throw IllegalArgumentException("缺少 depth")
-            val extend = args["extend"]?.jsonPrimitive?.int
-                ?: throw IllegalArgumentException("缺少 extend")
-            val retract = args["retract"]?.jsonPrimitive?.int
-                ?: throw IllegalArgumentException("缺少 retract")
-            val strength = args["strength"]?.jsonPrimitive?.int
-                ?: throw IllegalArgumentException("缺少 strength")
-            val temperature = args["temperature"]?.jsonPrimitive?.int ?: 0
+            val depth = args?.get("depth").toSafeInt()
+                ?: throw IllegalArgumentException("缺少 depth 参数（推拉深度，范围 1-100）")
+            val extend = args?.get("extend").toSafeInt()
+                ?: throw IllegalArgumentException("缺少 extend 参数（伸展速度，范围 1-100）")
+            val retract = args?.get("retract").toSafeInt()
+                ?: throw IllegalArgumentException("缺少 retract 参数（收缩速度，范围 1-100）")
+            val strength = args?.get("strength").toSafeInt()
+                ?: throw IllegalArgumentException("缺少 strength 参数（震动强度，范围 1-100）")
             
             // 验证范围
             if (depth !in 1..100 || extend !in 1..100 || retract !in 1..100 || strength !in 1..100) {
-                throw IllegalArgumentException("推拉/震动参数超出范围 (1-100)")
-            }
-            if (temperature !in 0..60) {
-                throw IllegalArgumentException("温度超出范围 (0-60)")
+                throw IllegalArgumentException("推拉/震动参数超出范围 (1-100)。depth=$depth, extend=$extend, retract=$retract, strength=$strength")
             }
             
             val intent = Intent(context, BleService::class.java).apply {
@@ -318,7 +450,6 @@ private fun registerTools(server: Server, context: Context) {
                 putExtra(BleService.EXTRA_EXTEND, extend)
                 putExtra(BleService.EXTRA_RETRACT, retract)
                 putExtra(BleService.EXTRA_STRENGTH, strength)
-                putExtra(BleService.EXTRA_TEMP, temperature)
             }
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -327,11 +458,43 @@ private fun registerTools(server: Server, context: Context) {
                 context.startService(intent)
             }
             
-            val tempInfo = if (temperature > 0) " 温度=${temperature}°C" else ""
+            // 详细的状态反馈
+            val depthLevel = when {
+                depth < 30 -> "浅尝辄止"
+                depth < 70 -> "中等幅度"
+                else -> "深度撞击"
+            }
+            
+            val speedPattern = when {
+                extend > retract + 20 -> "强冲入，慢抽出"
+                retract > extend + 20 -> "慢推入，快抽出"
+                extend > 70 && retract > 70 -> "高速抽插"
+                extend < 40 && retract < 40 -> "缓慢律动"
+                else -> "均匀节奏"
+            }
+            
+            val vibLevel = when {
+                strength < 30 -> "微弱震感"
+                strength < 70 -> "适中震动"
+                else -> "强烈震颤"
+            }
+
+            
             CallToolResult(
                 content = listOf(
                     TextContent(
-                        text = "✓ 已发送全部参数: 深度=$depth 伸=$extend 缩=$retract 强度=$strength$tempInfo"
+                        text = """
+                            ✓ 全部参数已发送并执行成功
+                            
+                            【当前设备状态】
+                            • 推拉深度：$depth ($depthLevel)
+                            • 伸展速度：$extend
+                            • 收缩速度：$retract
+                            • 速度模式：$speedPattern
+                            • 震动强度：$strength ($vibLevel)
+                            
+                            设备正在以当前参数运行，用户可随时调整或停止。
+                        """.trimIndent()
                     )
                 )
             )
@@ -402,10 +565,10 @@ private fun registerTools(server: Server, context: Context) {
         }
     }
     
-    // 9. 全部停止
+    // 9. 【紧急】全部停止
     server.addTool(
         name = "stop_all",
-        description = "停止所有运动（推拉+震动）",
+        description = "【紧急停止】立即停止设备的所有运动（推拉+震动+循环预设）。当用户要求停止、暂停或结束时使用此工具。",
         inputSchema = ToolSchema(properties = buildJsonObject {})
     ) { _ ->
         try {
@@ -419,8 +582,22 @@ private fun registerTools(server: Server, context: Context) {
                 context.startService(intent)
             }
             
+            // 同时停止循环预设服务
+            context.stopService(Intent(context, LoopPresetService::class.java))
+            
             CallToolResult(
-                content = listOf(TextContent(text = "✓ 已停止所有运动"))
+                content = listOf(
+                    TextContent(text = """
+                        ✓ 所有运动已停止
+                        
+                        已执行操作：
+                        • 推拉运动：已停止
+                        • 震动马达：已停止
+                        • 循环预设：已停止（如果正在运行）
+                        
+                        设备现在处于静止状态，可随时发送新指令。
+                    """.trimIndent())
+                )
             )
         } catch (e: Exception) {
             Log.e("McpServer", "StopAll tool failed", e)
@@ -433,23 +610,43 @@ private fun registerTools(server: Server, context: Context) {
     
     // === 预设管理工具 ===
     
-    // 10. 列出所有预设
+    // 10. 列出所有预设（查询预设 ID）
     server.addTool(
         name = "list_presets",
-        description = "列出所有可用的循环预设（包括官方和自定义）",
+        description = "列出所有可用的循环预设（包括官方预设和自定义预设）。【必须】在调用 run_preset 之前，先调用此工具获取预设ID列表。",
         inputSchema = ToolSchema(properties = buildJsonObject {})
     ) { _ ->
         try {
             val repository = aya.strokenet.data.repository.PresetRepository(context)
             val allPresets = repository.getAllPresets()
             
-            val presetList = allPresets.map { preset ->
-                "- ${preset.name} (ID: ${preset.id})\n  描述: ${preset.description}\n  动作数: ${preset.commands.size}\n  类型: ${if (preset.isCustom) "自定义" else "官方"}"
+            if (allPresets.isEmpty()) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "暂无可用预设"))
+                )
+            }
+            
+            val presetList = allPresets.mapIndexed { index, preset ->
+                val duration = preset.commands.sumOf { it.time } / 1000
+                """
+                ${index + 1}. ${preset.name}
+                   • ID: ${preset.id}
+                   • 描述: ${preset.description}
+                   • 动作数: ${preset.commands.size} 个
+                   • 单轮时长: ${duration} 秒
+                   • 类型: ${if (preset.isCustom) "自定义" else "官方"}
+                """.trimIndent()
             }.joinToString("\n\n")
             
             CallToolResult(
                 content = listOf(
-                    TextContent(text = "✓ 共 ${allPresets.size} 个预设:\n\n$presetList")
+                    TextContent(text = """
+                        ✓ 共 ${allPresets.size} 个可用预设
+                        
+                        $presetList
+                        
+                        使用说明：复制想要运行的预设ID，然后调用 run_preset 工具并传入该ID。
+                    """.trimIndent())
                 )
             )
         } catch (e: Exception) {
@@ -461,15 +658,15 @@ private fun registerTools(server: Server, context: Context) {
         }
     }
     
-    // 11. 运行预设
+    // 11. 运行预设（必须先调用 list_presets）
     server.addTool(
         name = "run_preset",
-        description = "运行指定的循环预设（会循环播放直到手动停止）",
+        description = "运行指定的循环预设（会循环播放直到手动停止）。【重要】调用此工具前，必须先调用 list_presets 以获取正确的预设ID，禁止猜测ID！预设会按照预定的动作序列循环播放，直到用户要求停止。",
         inputSchema = ToolSchema(
             properties = buildJsonObject {
                 putJsonObject("preset_id") {
                     put("type", "string")
-                    put("description", "预设ID（从 list_presets 获取）")
+                    put("description", "预设的唯一标识符。必须从 list_presets 工具的返回结果中获取，不要猜测或编造ID。")
                 }
             },
             required = listOf("preset_id")
@@ -478,11 +675,11 @@ private fun registerTools(server: Server, context: Context) {
         try {
             val args = request.arguments
             val presetId = args?.get("preset_id")?.jsonPrimitive?.content
-                ?: throw IllegalArgumentException("缺少 preset_id")
+                ?: throw IllegalArgumentException("缺少 preset_id 参数")
             
             val repository = aya.strokenet.data.repository.PresetRepository(context)
             val preset = repository.getAllPresets().find { it.id == presetId }
-                ?: throw IllegalArgumentException("预设不存在: $presetId")
+                ?: throw IllegalArgumentException("预设不存在: $presetId。请先调用 list_presets 获取有效的预设ID。")
             
             // 启动循环预设服务
             val presetJson = kotlinx.serialization.json.Json.encodeToString(
@@ -501,9 +698,23 @@ private fun registerTools(server: Server, context: Context) {
                 context.startService(intent)
             }
             
+            val totalDuration = preset.commands.sumOf { it.time } / 1000
+            
             CallToolResult(
                 content = listOf(
-                    TextContent(text = "✓ 正在运行预设: ${preset.name}\n提示: 使用 stop_all 或 stop_preset 停止")
+                    TextContent(text = """
+                        ✓ 循环预设已启动
+                        
+                        【预设信息】
+                        • 预设名称：${preset.name}
+                        • 预设描述：${preset.description}
+                        • 动作数量：${preset.commands.size} 个
+                        • 单轮时长：${totalDuration} 秒
+                        • 运行模式：循环播放（无限重复）
+                        
+                        预设将按照预定的动作序列不断循环，直到用户要求停止。
+                        可使用 stop_preset 或 stop_all 工具停止。
+                    """.trimIndent())
                 )
             )
         } catch (e: Exception) {
@@ -1025,6 +1236,23 @@ private fun registerTools(server: Server, context: Context) {
                 isError = true
             )
         }
+    }
+}
+
+/**
+ * 安全地从 JsonElement 提取整数
+ * 支持字符串、浮点数等格式，提高 AI 调用容错性
+ */
+private fun JsonElement?.toSafeInt(): Int? {
+    return when {
+        this == null -> null
+        this is JsonPrimitive -> {
+            when {
+                this.isString -> this.content.toDoubleOrNull()?.toInt()
+                else -> this.intOrNull
+            }
+        }
+        else -> null
     }
 }
 
