@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import aya.strokenet.ui.theme.StrokeNetTheme
@@ -417,6 +419,16 @@ fun StrokeNetApp(
                         }
                     }
                 }
+            }
+            
+            // 全局悬浮停止按钮（右下角）
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .padding(bottom = if (!showPresetEditorScreen) 80.dp else 0.dp) // 避免遮挡底部导航
+            ) {
+                aya.strokenet.ui.components.GlobalStopButton()
             }
         }
     }

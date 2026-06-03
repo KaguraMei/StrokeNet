@@ -58,13 +58,26 @@ fun CustomPresetsScreen(
     DisposableEffect(context) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == aya.strokenet.LoopPresetService.BROADCAST_LOOP_STOPPED) {
-                    viewModel.playingPresetId = null
+                when (intent?.action) {
+                    aya.strokenet.LoopPresetService.BROADCAST_LOOP_STOPPED -> {
+                        viewModel.playingPresetId = null
+                    }
+                    aya.strokenet.LoopPresetService.BROADCAST_LOOP_STARTED -> {
+                        // MCP 启动预设时的广播
+                        val presetId = intent.getStringExtra("preset_id")
+                        if (presetId != null) {
+                            viewModel.playingPresetId = presetId
+                        }
+                    }
                 }
             }
         }
         
-        val filter = IntentFilter(aya.strokenet.LoopPresetService.BROADCAST_LOOP_STOPPED)
+        val filter = IntentFilter().apply {
+            addAction(aya.strokenet.LoopPresetService.BROADCAST_LOOP_STOPPED)
+            addAction(aya.strokenet.LoopPresetService.BROADCAST_LOOP_STARTED)
+        }
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {

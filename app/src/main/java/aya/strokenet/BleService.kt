@@ -23,6 +23,10 @@ class BleService : Service() {
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "ble_service_channel"
         
+        // Broadcast Actions
+        const val BROADCAST_DEVICE_ACTIVE = "aya.strokenet.DEVICE_ACTIVE"
+        const val BROADCAST_DEVICE_STOPPED = "aya.strokenet.DEVICE_STOPPED"
+        
         // Service Actions
         const val ACTION_START = "start"
         const val ACTION_THRUST = "thrust"
@@ -152,6 +156,9 @@ class BleService : Service() {
         
         updateNotification("发送中: $summary")
         
+        // 广播设备激活状态
+        sendBroadcast(Intent(BROADCAST_DEVICE_ACTIVE))
+        
         try {
             // 1. 立即发送推拉命令（使用推拉广播器）
             val params = aya.strokenet.data.model.ControlParams(
@@ -196,6 +203,9 @@ class BleService : Service() {
     private fun sendStopCommand(uuid: String, description: String) {
         updateNotification("🚨 $description...")
         
+        // 广播设备停止状态
+        sendBroadcast(Intent(BROADCAST_DEVICE_STOPPED))
+        
         try {
             Log.d(TAG, "========== 发送停止命令 ==========")
             Log.d(TAG, "停止命令: $uuid")
@@ -236,6 +246,9 @@ class BleService : Service() {
      */
     private fun sendCommand(uuid: String, description: String) {
         updateNotification("发送中: $description")
+        
+        // 广播设备激活状态
+        sendBroadcast(Intent(BROADCAST_DEVICE_ACTIVE))
         
         try {
             bleAdvertiser.startSingleBroadcast(uuid)

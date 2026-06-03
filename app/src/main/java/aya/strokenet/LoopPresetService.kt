@@ -32,6 +32,7 @@ class LoopPresetService : Service() {
         
         // 广播Action
         const val BROADCAST_LOOP_STOPPED = "aya.strokenet.LOOP_PRESET_STOPPED"
+        const val BROADCAST_LOOP_STARTED = "aya.strokenet.LOOP_PRESET_STARTED"
     }
     
     private lateinit var bleAdvertiser: DaxiuBleAdvertiser
@@ -116,6 +117,15 @@ class LoopPresetService : Service() {
         currentIndex = 0
         isLooping = true
         
+        // 发送广播通知 UI 预设开始播放
+        sendBroadcast(Intent(BROADCAST_LOOP_STARTED).apply {
+            putExtra("preset_id", preset.id)
+            putExtra("preset_name", preset.name)
+        })
+        
+        // 广播设备激活状态
+        sendBroadcast(Intent(BleService.BROADCAST_DEVICE_ACTIVE))
+        
         Log.d(TAG, "Loop started: ${preset.name}, ${preset.commands.size} commands")
         updateNotification()
         handler.post(loopRunnable)
@@ -127,6 +137,9 @@ class LoopPresetService : Service() {
         
         // 发送广播通知UI
         sendBroadcast(Intent(BROADCAST_LOOP_STOPPED))
+        
+        // 广播设备停止状态
+        sendBroadcast(Intent(BleService.BROADCAST_DEVICE_STOPPED))
         
         Log.d(TAG, "Loop stopped")
         stopSelf()
