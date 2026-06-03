@@ -1,20 +1,51 @@
-# StrokeNet
+# StrokeNet 2.0
 
-> 基于 BLE 广播协议的 Android 控制应用
+> 基于 BLE 广播协议的 Android 控制应用 | 内置官方 MCP SDK | AI 原生控制
 
-[![Android](https://img.shields.io/badge/Android-12%2B-green.svg)](https://developer.android.com)
+[![Android](https://img.shields.io/badge/Android-7%2B-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-blue.svg)](https://kotlinlang.org)
+[![MCP SDK](https://img.shields.io/badge/MCP_SDK-0.6.0-brightgreen.svg)](https://github.com/modelcontextprotocol/kotlin-sdk)
 [![Compose](https://img.shields.io/badge/Compose-Latest-orange.svg)](https://developer.android.com/jetpack/compose)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## ✨ 核心功能
+---
 
-- 📡 **BLE 广播控制** - 无需配对，直接通过 BLE 广播控制设备
-- 🔄 **前台服务** - 后台可靠发送，失败自动重试（最多2次）
-- 🎚️ **完整参数控制** - 推拉深度、伸出/缩回速度、强度、温度
-- 📋 **预设模式** - 内置多种预设，一键启动
-- 🔌 **Intent 接口** - 支持外部调用，可与 MCP/Termux 集成
-- 🔔 **通知反馈** - 实时显示发送状态和结果
+**项目状态**: ✅ **2.0 正式版发布**  
+**版本**: 2.0.0 | **MCP SDK**: kotlin-sdk-server 0.6.0 | **Android**: API 24+ (Android 7.0+)  
+**最后更新**: 2026-06-03
+
+## 🔗 快速链接
+
+- 📱 [下载 APK](../../releases) - 最新发布版本
+- 📖 [完整文档](docs/DOCS_INDEX.md) - 所有文档索引
+- 🚀 [快速开始](docs/MCP_QUICKSTART.md) - 5 分钟上手
+- 🎨 [预设指南](docs/MCP_PRESET_GUIDE.md) - 创建自定义预设
+- 💻 [开发指南](docs/AI_AGENT_GUIDE.md) - AI Agent 综合指南
+- ⚠️ [UUID 协议](docs/UUID_ENCODING.md) - 正确的编码实现
+
+---
+
+## ✨ 2.0 核心特性
+
+### 🌐 内置 MCP Server（官方 SDK）
+- ✅ 基于官方 Kotlin MCP SDK 0.6.0
+- ✅ 无需 Termux，一键启动
+- ✅ 20+ MCP 工具，完整控制能力
+- ✅ 标准 HTTP Streamable 传输协议
+
+### 🎨 自定义循环预设
+- ✅ 可视化创建、编辑预设
+- ✅ 多段动作自动循环执行
+- ✅ JSON 格式导入导出分享
+- ✅ 应用启动时自动加载所有预设
+
+### 🔧 完整功能
+- ✅ BLE 广播控制（无需配对）
+- ✅ 前台服务保活 + 失败重试
+- ✅ 完整参数控制（推拉、震动、温度）
+- ✅ 加热定时器（1-10分钟自动关闭）
+- ✅ MCP 管理界面（状态、工具、日志）
+- ✅ Intent 接口（可选 Termux 集成）
 
 ## 🚀 快速开始
 
@@ -55,11 +86,17 @@ adb shell am start -n aya.strokenet/.MainActivity --es action stop
 
 ### 📚 核心文档
 
-- **[docs/RELEASE_BUILD_GUIDE.md](docs/RELEASE_BUILD_GUIDE.md)** - 正式版 APK 打包指南 📦 新增
-- **[docs/SERVICE_INTEGRATION.md](docs/SERVICE_INTEGRATION.md)** - BLE Service 集成说明 ⭐
-- **[docs/UUID_ENCODING.md](docs/UUID_ENCODING.md)** - UUID 编码配置 ⚠️ 重要
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - 架构设计说明
-- **[docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md)** - 构建部署指南
+#### 🌐 MCP Server（2.0 内置）
+- **[docs/MCP_QUICKSTART.md](docs/MCP_QUICKSTART.md)** - **5 分钟快速开始** ⚡⚡⚡
+- **[docs/MCP_INTEGRATION_GUIDE.md](docs/MCP_INTEGRATION_GUIDE.md)** - 完整集成指南
+- **[docs/MCP_PRESET_GUIDE.md](docs/MCP_PRESET_GUIDE.md)** - 预设管理和 MCP 工具详解
+
+#### 📦 构建和发布
+- **[docs/RELEASE_BUILD_GUIDE.md](docs/RELEASE_BUILD_GUIDE.md)** - 正式版 APK 打包指南
+
+#### ⚙️ 技术细节
+- **[docs/UUID_ENCODING.md](docs/UUID_ENCODING.md)** - UUID 编码协议详解 ⚠️ 必读
+- **[docs/SERVICE_INTEGRATION.md](docs/SERVICE_INTEGRATION.md)** - BLE Service 集成说明
 - **[docs/DOCS_INDEX.md](docs/DOCS_INDEX.md)** - 完整文档索引
 
 ## 🏗️ 项目结构
@@ -161,14 +198,20 @@ StrokeNet 的解决方案：
 
 ## ⚠️ 重要提示
 
-### UUID 编码调整
+### UUID 编码协议
 
-**当前的 UUID 编码是示例代码**，需要根据实际设备调整：
+本项目的 BLE 协议实现**完全基于官方 APP 的反编译结果**。
 
-1. 使用 nRF Connect Scanner 抓取官方 APP 的 UUID
-2. 分析字节位变化规律
-3. 修改 `BleAdvertiser.kt` 中的 `buildControlUuid()` 函数
-4. 重新编译测试
+感谢 **[用 AI 远程控制你的 Cachito 大秀炮机](https://claude.ai/public/artifacts/921eda06-e567-4cde-85af-8cde831a608f)** 教程提供的逆向思路和 MCP 集成灵感，但需要指出：**该文章中给出的 UUID 编码逻辑并不正确**（参数位置、校验和计算等与官方实现不符）。
+
+**本项目实现的正确编码协议请参考**：[docs/UUID_ENCODING.md](docs/UUID_ENCODING.md) 📖
+
+主要差异：
+- ✅ 完整的 UUID 格式：`710003XX-YYYY-ZZZZ-0000-WWWWWWWWWWCC`
+- ✅ 正确的参数编码位置（最后12位）
+- ✅ 校验和计算机制
+- ✅ 设备ID持久化存储
+- ✅ 准确的参数映射公式
 
 详见 [UUID_ENCODING.md](docs/UUID_ENCODING.md)
 
@@ -182,182 +225,91 @@ Android 12+ 必须手动在设置中授予权限：
 
 推拉的三个参数（depth / extendSpeed / retractSpeed）必须同时设置，设备才会执行动作。
 
-## 🤝 MCP 服务集成
+## 🤝 控制方式
 
-在 Termux 中运行 MCP 服务，通过 AI 控制设备。
+### 方式一：内置 MCP Server（推荐）🌐
 
-### 📱 环境准备
+**StrokeNet 2.0** 内置标准 MCP Server，**无需 Termux**，一键启动即可使用。
 
-#### 1. 安装必要应用
+#### 技术栈
+- **Kotlin MCP SDK 0.6.0** - 官方标准实现
+- **Ktor 3.0** - 高性能 HTTP 服务器
+- **Streamable HTTP** - 标准 MCP 传输协议
 
-- **Termux** - 终端模拟器
-- **Material Files** - 文件管理器
+#### 📱 本地模式
+- 同一 WiFi 网络下访问
+- 低延迟，稳定可靠
+- URL: `http://192.168.x.x:8080/mcp`
 
-#### 2. 配置 Termux 存储访问
+#### ⚡ 快速开始
 
-由于 Termux 的工作目录位于 `data/data/com.termux/...`，Android 常规文件管理器无法直接访问该路径。需要通过 Material Files 配置存储空间：
+1. 在 App 中打开「MCP」页面
+2. 点击「启动服务」按钮
+3. 复制显示的服务地址（包含 `/mcp` 路径）
+4. 在 AI 工具（Claude Desktop/Kiro）中配置 MCP Server
+5. 通过自然语言控制设备
 
-1. 打开 **Material Files**
-2. **左滑** 打开侧边菜单
-3. 选择 **添加存储空间** → **外部存储空间**
-4. 点击左上角 **三** 字图标（菜单）
-5. 选择 **Termux**
+#### 配置示例
 
-现在可以在 Material Files 中访问 Termux 目录了，一般是home。
-
-#### 3. 复制 MCP 文件到 Termux
-
-将项目中的 `mcp/` 目录下的所有文件复制到 Termux 的主目录：
-
-```
-项目/mcp/* → Termux/home/
-```
-
-可以通过 Material Files 直接复制粘贴。
-
-#### 4. 安装依赖环境
-
-打开 **Termux**，依次执行以下命令：
-
-```bash
-# 更新包管理器
-pkg update && pkg upgrade
-
-# 安装 Python
-pkg install python
-
-# 安装 Rust（fastMCP 依赖）
-pkg install rust
-
-# 安装 fastMCP（⚠️ 这一步可能需要 10-30 分钟，耐心等待）
-pip install fastmcp
-
-# 等待直到看到 -$ 提示符即表示安装完成
+```json
+{
+  "mcpServers": {
+    "strokenet": {
+      "url": "http://192.168.1.5:8080/mcp"
+    }
+  }
+}
 ```
 
-**注意**：fastMCP 会自动安装 3.x 版本，安装过程中会编译 Rust 组件，时间较长属于正常现象。
+#### 🎨 MCP 预设管理
 
-#### 5. 安装 Cloudflared（可选，用于远程访问）
+StrokeNet 2.0 支持通过 MCP 完整管理预设：
 
-```bash
-# 直接从 Termux 官方仓库安装
-pkg install cloudflared
-```
+- 📋 `list_presets` - 列出所有预设
+- 📖 `get_official_presets` - 获取官方预设
+- 📝 `get_custom_presets` - 获取自定义预设
+- ➕ `create_custom_preset` - 创建自定义预设
+- ✏️ `update_custom_preset` - 更新自定义预设
+- ▶️ `run_preset` - 运行预设
+- ⏹️ `stop_preset` - 停止预设
+- 🗑️ `delete_custom_preset` - 删除自定义预设
+- 📤 `export_custom_presets` - 导出预设
+- 📥 `import_custom_presets` - 导入预设
 
-### 🚀 启动 MCP 服务
+详见 **[MCP_PRESET_GUIDE.md](docs/MCP_PRESET_GUIDE.md)** 和 **[MCP_INTEGRATION_GUIDE.md](docs/MCP_INTEGRATION_GUIDE.md)** 📖
 
-#### 方式一：使用启动脚本（推荐）
+### 方式二：Termux + Python MCP（可选）
 
-```bash
-cd ~
-bash start.sh
-```
+> ⚠️ **注意**：StrokeNet 2.0 推荐使用内置 MCP Server。Termux 方式保留用于需要自定义 Python MCP 工具的高级用户。
 
-#### 方式二：直接运行 Python 脚本
+如果你需要：
+- 自定义 Python MCP 工具
+- 使用 fastMCP 快速原型开发
+- 1.0 版本的 Termux 工作流
 
-```bash
-cd ~
-python daxiu_mcp_auto.py
-# 或
-python daxiu_mcp_http.py
-```
+请查看：**[Termux MCP 配置指南（1.0 版本留档）](docs/TERMUX_MCP_GUIDE.md)** 📖
 
-服务启动后会监听在 `0.0.0.0:3459`，等待 AI 客户端连接。
+---
 
-**⚠️ 注意**：如果使用 `daxiu_mcp_http.py`，请确保脚本中已显式指定端口为 3459（已修复），否则 FastMCP 会使用默认端口 8000。
+## 🎯 2.0 版本新特性
 
-### 🌐 配置远程访问（可选）
+### ✅ 已实现
 
-如果需要从外网访问 MCP 服务，需要启动 Cloudflared 隧道。
+- ✅ **内置 MCP Server** - 基于官方 Kotlin MCP SDK 0.6.0
+- ✅ **自定义循环预设** - 可视化创建、编辑、运行
+- ✅ **预设导入导出** - JSON 格式分享
+- ✅ **加热定时器** - 温度 + 自动关闭时长
+- ✅ **应用启动预加载** - 官方预设 + 自定义预设自动加载
+- ✅ **完整 MCP 工具集** - 20+ 工具，涵盖所有功能
+- ✅ **MCP 管理界面** - 服务状态、工具列表、请求日志
 
-**在 Termux 中新开一个会话**（下拉通知栏 → Termux → NEW SESSION）：
+### 🔄 架构升级
 
-```bash
-cloudflared tunnel --url http://localhost:3459
-```
-
-Cloudflared 会输出一个公网 URL，例如：
-```
-https://random-name-1234.trycloudflare.com
-```
-
-将这个 URL 配置到 AI 客户端的 MCP 服务器地址即可。
-
-### 🔧 MCP 服务代码示例
-
-```python
-# daxiu_mcp.py
-from mcp.server.fastmcp import FastMCP
-import subprocess
-
-mcp = FastMCP("daxiu")
-
-def am(action, **kwargs):
-    cmd = ["am", "start", "-n", "aya.strokenet/.MainActivity",
-           "--es", "action", action]
-    for k, v in kwargs.items():
-        cmd += ["--ei", k, str(v)]
-    subprocess.run(cmd, capture_output=True, text=True, timeout=5)
-
-@mcp.tool()
-def daxiu_start(depth: int = 36, extend_speed: int = 8, retract_speed: int = 8) -> str:
-    """启动推拉。depth 0-72, extend_speed 0-15, retract_speed 0-15"""
-    am("start", depth=depth, extend=extend_speed, retract=retract_speed)
-    return f"推拉启动: 深浅={depth}/72 伸出={extend_speed}/15 缩回={retract_speed}/15"
-
-@mcp.tool()
-def daxiu_stop() -> str:
-    """全部停止"""
-    am("stop")
-    return "已停止"
-
-if __name__ == "__main__":
-    mcp.run(transport="sse", host="0.0.0.0", port=3459)
-```
-
-### 💡 使用方式
-
-```bash
-# 1. 在 Termux 会话 1 中启动 MCP 服务
-python daxiu_mcp.py
-
-# 2. 在 Termux 会话 2 中启动 Cloudflared（可选）
-cloudflared tunnel --url http://localhost:3459
-
-# 3. 在 AI 客户端中配置 MCP 服务器
-# 本地: http://localhost:3459
-# 远程: https://your-cloudflare-url.trycloudflare.com
-
-# 4. 通过 AI 对话控制设备
-# "启动设备，深度50，速度10"
-# → daxiu_start(depth=50, extend_speed=10, retract_speed=10)
-```
-
-### 📝 完整启动流程总结
-
-1. ✅ 安装 Termux 和 Material Files
-2. ✅ 配置 Material Files 访问 Termux 存储
-3. ✅ 复制 `mcp/` 目录文件到 Termux
-4. ✅ 安装 Python、Rust、fastMCP
-5. ✅ 运行 `start.sh` 或 `python daxiu_mcp_auto.py`
-6. ✅ （可选）新开会话运行 `cloudflared tunnel --url http://localhost:3459`
-7. ✅ 配置 AI 客户端连接 MCP 服务器
-8. ✅ 开始使用 AI 控制设备
-
-## 🚀 未来功能（占位）
-
-### 自定义动作循环
-
-按照预设的动作序列自动变化参数：
-
-```
-慢浅 (深度=20, 速度=5) → 持续 10 秒
-慢深 (深度=60, 速度=5) → 持续 10 秒
-快深 (深度=60, 速度=12) → 持续 5 秒
-循环回到开始
-```
-
-实现方案见 [SERVICE_INTEGRATION.md](docs/SERVICE_INTEGRATION.md#未来扩展自定义动作循环)
+**1.x → 2.0**:
+- ❌ 需要 Termux 环境 → ✅ 内置 MCP Server
+- ❌ 5 个基础工具 → ✅ 20+ 完整工具
+- ❌ 无预设管理 → ✅ 完整预设系统
+- ❌ 手动安装依赖 → ✅ 开箱即用
 
 ## 🔧 开发
 
@@ -398,12 +350,38 @@ MIT License - 详见 [LICENSE](LICENSE)
 - 🔍 如何使用 nRF Connect Scanner 逆向 BLE 广播协议
 - 📡 BLE Advertiser 模式与传统 GATT 连接的区别
 - 🤖 通过 MCP 让 AI 控制智能设备的完整链路
-- 🚀 Termux + Cloudflared 实现远程访问
+- 🚀 Termux + MCP 实现远程 AI 控制
 
 感谢作者分享的宝贵经验，为本项目提供了核心技术思路。
 
+### ⚠️ 重要说明
+
+**本项目的 BLE 协议实现完全基于官方 APP 的反编译结果**。该教程虽然提供了很好的思路，但**文章中的 UUID 编码逻辑并不正确**（参数位置、校验和计算等与官方实现不符）。
+
+**本项目实现的正确编码协议请参考**：[UUID_ENCODING.md](docs/UUID_ENCODING.md) ⚠️
+
+主要差异：
+- ✅ 完整 UUID 格式：`710003XX-YYYY-ZZZZ-0000-WWWWWWWWWWCC`
+- ✅ 正确的参数编码位置（最后12位）
+- ✅ 校验和计算机制
+- ✅ 设备 ID 持久化存储
+- ✅ 准确的参数映射公式
+
+如果你在开发类似项目，请以本项目的实现和文档为准。
+
 ---
 
-**项目状态**: ✅ 核心功能完成，等待 UUID 编码调整  
-**版本**: 1.0.0  
-**最后更新**: 2026-05-29
+**项目状态**: ✅ **2.0 正式版发布**  
+**版本**: 2.0.0  
+**MCP SDK**: kotlin-sdk-server 0.6.0  
+**Android**: API 24+ (Android 7.0+)  
+**最后更新**: 2026-06-03
+
+## 🔗 快速链接
+
+- 📱 [下载 APK](../../releases) - 最新发布版本
+- 📖 [完整文档](docs/DOCS_INDEX.md) - 所有文档索引
+- 🚀 [快速开始](docs/MCP_QUICKSTART.md) - 5 分钟上手
+- 🎨 [预设指南](docs/MCP_PRESET_GUIDE.md) - 创建自定义预设
+- 💻 [开发指南](docs/AI_AGENT_GUIDE.md) - AI Agent 综合指南
+- ⚠️ [UUID 协议](docs/UUID_ENCODING.md) - 正确的编码实现

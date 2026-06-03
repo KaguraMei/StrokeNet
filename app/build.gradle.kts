@@ -53,6 +53,31 @@ android {
             }
         }
     }
+    
+    // 解决 Netty/Ktor 资源冲突
+    packaging {
+        resources {
+            // 忽略 Netty 的 INDEX.LIST 冲突
+            excludes += "/META-INF/INDEX.LIST"
+            
+            // 忽略其他常见的 Netty/Ktor 冲突
+            excludes += "/META-INF/io.netty.versions.properties"
+            excludes += "/META-INF/okio.kotlin_module"
+            excludes += "/META-INF/kotlinx-serialization-core.kotlin_module"
+            
+            // 对于许可证文件，保留第一个
+            pickFirsts += "META-INF/LICENSE.md"
+            pickFirsts += "META-INF/NOTICE.md"
+            pickFirsts += "META-INF/LICENSE"
+            pickFirsts += "META-INF/NOTICE"
+        }
+        
+        // 关键配置：确保 .so 文件被提取到磁盘
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -76,6 +101,16 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    
+    // MCP Kotlin SDK (官方)
+    implementation("io.modelcontextprotocol:kotlin-sdk-server:0.13.0") 
+    
+    // Ktor Server (MCP SDK 需要)
+    implementation("io.ktor:ktor-server-core:3.0.3")
+    implementation("io.ktor:ktor-server-netty:3.0.3")
+    implementation("io.ktor:ktor-server-cors:3.0.3")
+    implementation("io.ktor:ktor-server-sse:3.0.3")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

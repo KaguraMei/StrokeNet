@@ -235,31 +235,13 @@ fun PresetsScreen(
         
         // 自定义预设
         if (viewModel.customPresets.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "自定义预设",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = iOSTextPrimary
-                )
-                TextButton(
-                    onClick = { /* TODO: 导航到自定义预设管理页面 */ }
-                ) {
-                    Text("管理", color = iOSBlue)
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        tint = iOSBlue,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
+            Text(
+                text = "自定义预设",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = iOSTextPrimary,
+                modifier = Modifier.padding(top = 8.dp)
+            )
             
             GlassPanel(modifier = Modifier.padding(0.dp)) {
                 viewModel.customPresets.forEachIndexed { index, preset ->

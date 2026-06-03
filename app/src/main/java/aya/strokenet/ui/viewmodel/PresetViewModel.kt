@@ -35,6 +35,15 @@ class PresetViewModel(application: Application) : AndroidViewModel(application) 
     var playingPresetId by mutableStateOf<String?>(null)
     
     init {
+        // 同步加载预设到内存（SharedPreferences读取很快）
+        try {
+            officialPresets = repository.loadOfficialPresets()
+            customPresets = repository.loadCustomPresets()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        
+        // 异步刷新确保最新
         loadPresets()
     }
     
@@ -90,5 +99,24 @@ class PresetViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun getAllPresets(): List<LoopPreset> {
         return officialPresets + customPresets
+    }
+    
+    /**
+     * 导出预设为JSON
+     */
+    fun exportPresets(): String {
+        return repository.exportCustomPresetsJson()
+    }
+    
+    /**
+     * 导入预设JSON
+     * @return 导入的预设数量
+     */
+    fun importPresets(json: String, replace: Boolean = false): Int {
+        val count = repository.importCustomPresetsJson(json, replace)
+        if (count > 0) {
+            loadPresets()
+        }
+        return count
     }
 }

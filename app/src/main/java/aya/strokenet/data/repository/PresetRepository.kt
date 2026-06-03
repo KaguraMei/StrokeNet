@@ -102,4 +102,63 @@ class PresetRepository(private val context: Context) {
     fun getAllPresets(): List<LoopPreset> {
         return loadOfficialPresets() + loadCustomPresets()
     }
+    
+    /**
+     * 导出自定义预设为JSON字符串
+     */
+    fun exportCustomPresetsJson(): String {
+        val presets = loadCustomPresets()
+        return json.encodeToString(presets)
+    }
+    
+    /**
+     * 从JSON字符串导入自定义预设
+     * @param jsonString JSON字符串
+     * @param replace 是否替换现有预设（true=替换，false=合并）
+     * @return 导入的预设数量
+     */
+    fun importCustomPresetsJson(jsonString: String, replace: Boolean = false): Int {
+        return try {
+            val importedPresets = json.decodeFromString<List<LoopPreset>>(jsonString)
+            
+            val finalPresets = if (replace) {
+                importedPresets
+            } else {
+                val currentPresets = loadCustomPresets()
+                val currentIds = currentPresets.map { it.id }.toSet()
+                
+                // 合并：去重，导入的预设如果ID重复则跳过
+                val newPresets = importedPresets.filter { it.id !in currentIds }
+                currentPresets + newPresets
+            }
+            
+            saveCustomPresets(finalPresets.map { it.copy(isCustom = true) })
+            importedPresets.size
+        } catch (e: Exception) {
+            e.printStackTrace()
+            0
+        }
+    }
+    
+    /**
+     * 导出单个预设为JSON字符串
+     */
+    fun exportPresetJson(presetId: String): String? {
+        val preset = loadCustomPresets().find { it.id == presetId }
+        return preset?.let { json.encodeToString(it) }
+    }
+    
+    /**
+     * 从JSON字符串导入单个预设
+     */
+    fun importPresetJson(jsonString: String): Boolean {
+        return try {
+            val preset = json.decodeFromString<LoopPreset>(jsonString)
+            addCustomPreset(preset)
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 }
