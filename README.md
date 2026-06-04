@@ -4,15 +4,15 @@
 
 [![Android](https://img.shields.io/badge/Android-7%2B-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-blue.svg)](https://kotlinlang.org)
-[![MCP SDK](https://img.shields.io/badge/MCP_SDK-0.6.0-brightgreen.svg)](https://github.com/modelcontextprotocol/kotlin-sdk)
+[![MCP SDK](https://img.shields.io/badge/MCP_SDK-0.13.0-brightgreen.svg)](https://github.com/modelcontextprotocol/kotlin-sdk)
 [![Compose](https://img.shields.io/badge/Compose-Latest-orange.svg)](https://developer.android.com/jetpack/compose)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
 **项目状态**: ✅ **2.0 正式版全线发售！**  
-**系统版本**: 2.0.0 | **MCP SDK**: kotlin-sdk-server 0.6.0 | **Android**: API 24+ (Android 7.0+)  
-**最后更新**: 2026-06-03 （记得常来看看有没有更新哦，博士~）
+**系统版本**: 2.0.0 | **MCP SDK**: kotlin-sdk-server 0.13.0 | **Android**: API 24+ (Android 7.0+)  
+**最后更新**: 2026-06-04 （记得常来看看有没有更新哦，博士~）
 
 ## 🔗 采购中心快捷通道
 
@@ -29,7 +29,7 @@
 ## ✨ 2.0 核心黑科技
 
 ### 🌐 罗德岛级内置 MCP Server
-- ✅ 搭载官方 Kotlin MCP SDK 0.6.0，稳如泰山！
+- ✅ 搭载官方 Kotlin MCP SDK 0.13.0，稳如泰山！
 - ✅ 彻底抛弃 Termux，一键点火启动，多省事~
 - ✅ 20+ 个 MCP 工具，从头到脚全方位控制能力
 - ✅ 标准 HTTP Streamable 传输协议，数据跑得飞快！
