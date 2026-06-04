@@ -23,6 +23,10 @@ class BleService : Service() {
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "ble_service_channel"
         
+        // Broadcast Actions
+        const val BROADCAST_DEVICE_ACTIVE = "aya.strokenet.DEVICE_ACTIVE"
+        const val BROADCAST_DEVICE_STOPPED = "aya.strokenet.DEVICE_STOPPED"
+        
         // Service Actions
         const val ACTION_START = "start"
         const val ACTION_THRUST = "thrust"
@@ -152,6 +156,11 @@ class BleService : Service() {
         
         updateNotification("发送中: $summary")
         
+        // 广播设备激活状态（让全局停止按钮显示）
+        sendBroadcast(Intent(BROADCAST_DEVICE_ACTIVE).apply {
+            setPackage(packageName)
+        })
+        
         try {
             // 1. 立即发送推拉命令（使用推拉广播器）
             val params = aya.strokenet.data.model.ControlParams(
@@ -177,16 +186,25 @@ class BleService : Service() {
             
             // 延迟更新通知为成功
             handler.postDelayed({
-                updateNotification("✓ 已发送: $summary")
+                updateNotification("✓ 运行中: $summary")
             }, 500)
             
-            // 延迟停止服务
-            handler.postDelayed({ stopSelf() }, 2000)
+            // ✅ 不停止服务，让通知持续显示（设备持续运行）
+            // 服务会在用户点击"全局停止"时被停止
+            Log.d(TAG, "Commands sent, service remains active")
             
         } catch (e: Exception) {
             Log.e(TAG, "Batch command failed: ${e.message}", e)
             updateNotification("✗ 发送失败: $summary")
-            handler.postDelayed({ stopSelf() }, 3000)
+            handler.postDelayed({ 
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
+                stopSelf() 
+            }, 3000)
         }
     }
     
@@ -195,6 +213,11 @@ class BleService : Service() {
      */
     private fun sendStopCommand(uuid: String, description: String) {
         updateNotification("🚨 $description...")
+        
+        // 广播设备停止状态（让全局停止按钮隐藏）
+        sendBroadcast(Intent(BROADCAST_DEVICE_STOPPED).apply {
+            setPackage(packageName)
+        })
         
         try {
             Log.d(TAG, "========== 发送停止命令 ==========")
@@ -219,8 +242,16 @@ class BleService : Service() {
                     bleAdvertiser.stopCurrentBroadcast()
                     Log.d(TAG, "========================================")
                     
-                    // 延迟停止服务
-                    handler.postDelayed({ stopSelf() }, 1000)
+                    // 延迟停止服务和移除通知
+                    handler.postDelayed({ 
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            stopForeground(true)
+                        }
+                        stopSelf() 
+                    }, 1000)
                 }, 2000)
             }, 100)
             
@@ -237,22 +268,35 @@ class BleService : Service() {
     private fun sendCommand(uuid: String, description: String) {
         updateNotification("发送中: $description")
         
+        // 广播设备激活状态（让全局停止按钮显示）
+        sendBroadcast(Intent(BROADCAST_DEVICE_ACTIVE).apply {
+            setPackage(packageName)
+        })
+        
         try {
             bleAdvertiser.startSingleBroadcast(uuid)
             Log.d(TAG, "Command sent: $uuid")
             
             // 不立即更新为成功，等待一小段时间让多个命令都能显示
             handler.postDelayed({
-                updateNotification("✓ 已发送: $description")
+                updateNotification("✓ 运行中: $description")
             }, 300)
             
-            // 延迟停止服务（给足够时间显示通知）
-            handler.postDelayed({ stopSelf() }, 3000)
+            // ✅ 不停止服务，让通知持续显示（设备持续运行）
+            Log.d(TAG, "Command sent, service remains active")
             
         } catch (e: Exception) {
             Log.e(TAG, "Command failed: ${e.message}", e)
             updateNotification("✗ 发送失败: $description")
-            handler.postDelayed({ stopSelf() }, 3000)
+            handler.postDelayed({ 
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
+                stopSelf()
+            }, 3000)
         }
     }
     

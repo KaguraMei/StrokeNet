@@ -16,6 +16,14 @@
     
     <!-- 通知权限 (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- 网络权限 (MCP Server) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    
+    <!-- 电源锁：防止 CPU 休眠和 WiFi 降速 (MCP Server 后台保活) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
 
@@ -57,6 +65,13 @@
         <!-- 循环预设播放服务 -->
         <service
             android:name=".LoopPresetService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+        
+        <!-- MCP Server 服务 -->
+        <service
+            android:name=".McpServerService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />

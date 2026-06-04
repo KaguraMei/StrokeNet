@@ -24,6 +24,12 @@ sealed class Screen(
         icon = Icons.Default.Star
     )
     
+    object Mcp : Screen(
+        route = "mcp",
+        title = "MCP",
+        icon = Icons.Default.Cloud
+    )
+    
     object Settings : Screen(
         route = "settings",
         title = "设置",
@@ -31,6 +37,6 @@ sealed class Screen(
     )
     
     companion object {
-        val screens = listOf(Control, Presets, Settings)
+        val screens = listOf(Control, Presets, Mcp, Settings)
     }
 }

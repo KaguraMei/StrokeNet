@@ -24,6 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import aya.strokenet.ble.DaxiuBleAdvertiser
 import aya.strokenet.BleService
 import aya.strokenet.HeatingTimerService
@@ -44,13 +47,14 @@ fun ControlScreen(
     var isBluetoothEnabled by remember { mutableStateOf(true) }
     
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     // 统一发送所有参数的函数
     val sendAllParameters: () -> Unit = {
         if (!isBluetoothEnabled) {
             onCheckBluetooth()
         } else {
-            // 1. 先停止预设循环播放（如果正在播放）
+            // 1. 停止预设循环播放（服务的 onDestroy 会自动发送停止广播）
             context.stopService(Intent(context, LoopPresetService::class.java))
             
             // 2. 使用批量发送API
@@ -81,7 +85,32 @@ fun ControlScreen(
         isBluetoothEnabled = bleAdvertiser?.isBluetoothEnabled() ?: false
     }
     
-    // 监听蓝牙状态变化
+    // 每次页面显示时检查服务运行状态，同步UI
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // 检查服务运行状态，同步UI
+                val isBleServiceRunning = isServiceRunning(context, BleService::class.java)
+                val isLoopServiceRunning = isServiceRunning(context, LoopPresetService::class.java)
+                
+                // 如果任一服务在运行，设备就是运行中
+                val shouldBeRunning = isBleServiceRunning || isLoopServiceRunning
+                
+                if (shouldBeRunning != viewModel.isRunning) {
+                    android.util.Log.d("ControlScreen", "Syncing running state on resume: BLE=$isBleServiceRunning, Loop=$isLoopServiceRunning, UI will be=$shouldBeRunning")
+                    viewModel.isRunning = shouldBeRunning
+                }
+            }
+        }
+        
+        lifecycleOwner.lifecycle.addObserver(observer)
+        
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    
+    // 监听蓝牙状态变化和设备停止广播
     DisposableEffect(context) {
         val bluetoothReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -102,6 +131,16 @@ fun ControlScreen(
                         viewModel.isHeating = false
                         viewModel.tempDuration = 0f
                     }
+                    BleService.BROADCAST_DEVICE_STOPPED -> {
+                        // 设备停止（全局停止按钮或预设停止），同步UI状态
+                        android.util.Log.d("ControlScreen", "Device stopped, updating UI")
+                        viewModel.isRunning = false
+                    }
+                    BleService.BROADCAST_DEVICE_ACTIVE -> {
+                        // 设备激活，同步UI状态
+                        android.util.Log.d("ControlScreen", "Device activated, updating UI")
+                        viewModel.isRunning = true
+                    }
                 }
             }
         }
@@ -109,6 +148,8 @@ fun ControlScreen(
         val filter = IntentFilter().apply {
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
             addAction(HeatingTimerService.BROADCAST_TIMER_STOPPED)
+            addAction(BleService.BROADCAST_DEVICE_STOPPED)
+            addAction(BleService.BROADCAST_DEVICE_ACTIVE)
         }
         
         // Android 13+ 需要指定 RECEIVER_NOT_EXPORTED
@@ -124,7 +165,11 @@ fun ControlScreen(
         }
         
         onDispose {
-            context.unregisterReceiver(bluetoothReceiver)
+            try {
+                context.unregisterReceiver(bluetoothReceiver)
+            } catch (e: Exception) {
+                android.util.Log.w("ControlScreen", "Receiver already unregistered")
+            }
         }
     }
 
@@ -512,4 +557,18 @@ fun AppleStyleSlider(
             modifier = Modifier.padding(top = 4.dp)
         )
     }
+}
+
+/**
+ * 检查指定服务是否正在运行
+ */
+private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
+    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+    @Suppress("DEPRECATION")
+    for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
+        if (serviceClass.name == service.service.className) {
+            return true
+        }
+    }
+    return false
 }

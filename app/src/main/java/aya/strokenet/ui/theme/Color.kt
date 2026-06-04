@@ -10,6 +10,10 @@ val iOSRed = Color(0xFFFF3B30)
 val iOSTextPrimary = Color(0xFF1C1C1E)
 val iOSTextSecondary = Color(0xFF8E8E93)
 
+// MCP Screen 颜色
+val DarkBackground = Color(0xFF121212)
+val GlassWhite = Color(0xFFFFFFFF)
+
 // 保留原有颜色以防兼容性问题
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)

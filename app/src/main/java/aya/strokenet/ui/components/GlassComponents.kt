@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -107,6 +109,8 @@ fun GlassBottomDock(
             val screens = listOf<Triple<String, String, ImageVector>>(
                 Triple("control", "控制", Icons.Default.Home),
                 Triple("presets", "预设", Icons.Default.Star),
+                Triple("custom", "自定义", Icons.Default.Favorite),
+                Triple("mcp", "MCP", Icons.Default.Cloud),
                 Triple("settings", "设置", Icons.Default.Settings)
             )
             

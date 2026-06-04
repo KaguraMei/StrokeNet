@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import aya.strokenet.ble.DaxiuBleAdvertiser
 import aya.strokenet.BleService
@@ -48,12 +49,26 @@ fun PresetsScreen(
     var showDialog by remember { mutableStateOf(false) }
     var selectedPreset by remember { mutableStateOf<LoopPreset?>(null) }
     
+    // 每次页面显示时检查服务状态
+    LaunchedEffect(Unit) {
+        // 检查 LoopPresetService 是否还在运行
+        val isServiceRunning = isServiceRunning(context, LoopPresetService::class.java)
+        if (!isServiceRunning && viewModel.playingPresetId != null) {
+            // 服务已停止但 UI 还显示播放中，清空状态
+            android.util.Log.d("PresetsScreen", "Service not running, clearing playingPresetId")
+            viewModel.playingPresetId = null
+        }
+    }
+    
     // 监听循环播放停止广播
     DisposableEffect(context) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
+                android.util.Log.d("PresetsScreen", "Broadcast received: ${intent?.action}")
                 if (intent?.action == LoopPresetService.BROADCAST_LOOP_STOPPED) {
+                    android.util.Log.d("PresetsScreen", "Clearing playingPresetId, was: ${viewModel.playingPresetId}")
                     viewModel.playingPresetId = null
+                    android.util.Log.d("PresetsScreen", "playingPresetId is now: ${viewModel.playingPresetId}")
                 }
             }
         }
@@ -62,11 +77,23 @@ fun PresetsScreen(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
-            context.registerReceiver(receiver, filter)
+            ContextCompat.registerReceiver(
+                context,
+                receiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
         }
         
+        android.util.Log.d("PresetsScreen", "Broadcast receiver registered, current playingPresetId: ${viewModel.playingPresetId}")
+        
         onDispose {
-            context.unregisterReceiver(receiver)
+            try {
+                context.unregisterReceiver(receiver)
+                android.util.Log.d("PresetsScreen", "Broadcast receiver unregistered")
+            } catch (e: Exception) {
+                android.util.Log.w("PresetsScreen", "Receiver already unregistered")
+            }
         }
     }
 
@@ -235,31 +262,13 @@ fun PresetsScreen(
         
         // 自定义预设
         if (viewModel.customPresets.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "自定义预设",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = iOSTextPrimary
-                )
-                TextButton(
-                    onClick = { /* TODO: 导航到自定义预设管理页面 */ }
-                ) {
-                    Text("管理", color = iOSBlue)
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        tint = iOSBlue,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
+            Text(
+                text = "自定义预设",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = iOSTextPrimary,
+                modifier = Modifier.padding(top = 8.dp)
+            )
             
             GlassPanel(modifier = Modifier.padding(0.dp)) {
                 viewModel.customPresets.forEachIndexed { index, preset ->
@@ -583,4 +592,18 @@ private fun ParamRow(label: String, value: String, range: String) {
             color = iOSBlue
         )
     }
+}
+
+/**
+ * 检查指定服务是否正在运行
+ */
+private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
+    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+    @Suppress("DEPRECATION")
+    for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
+        if (serviceClass.name == service.service.className) {
+            return true
+        }
+    }
+    return false
 }

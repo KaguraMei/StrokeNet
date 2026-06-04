@@ -32,6 +32,7 @@ class LoopPresetService : Service() {
         
         // 广播Action
         const val BROADCAST_LOOP_STOPPED = "aya.strokenet.LOOP_PRESET_STOPPED"
+        const val BROADCAST_LOOP_STARTED = "aya.strokenet.LOOP_PRESET_STARTED"
     }
     
     private lateinit var bleAdvertiser: DaxiuBleAdvertiser
@@ -116,6 +117,18 @@ class LoopPresetService : Service() {
         currentIndex = 0
         isLooping = true
         
+        // 发送广播通知 UI 预设开始播放
+        sendBroadcast(Intent(BROADCAST_LOOP_STARTED).apply {
+            setPackage(packageName)
+            putExtra("preset_id", preset.id)
+            putExtra("preset_name", preset.name)
+        })
+        
+        // 广播设备激活状态（让全局停止按钮显示）
+        sendBroadcast(Intent(BleService.BROADCAST_DEVICE_ACTIVE).apply {
+            setPackage(packageName)
+        })
+        
         Log.d(TAG, "Loop started: ${preset.name}, ${preset.commands.size} commands")
         updateNotification()
         handler.post(loopRunnable)
@@ -125,8 +138,15 @@ class LoopPresetService : Service() {
         isLooping = false
         handler.removeCallbacks(loopRunnable)
         
-        // 发送广播通知UI
-        sendBroadcast(Intent(BROADCAST_LOOP_STOPPED))
+        // 发送广播通知UI（让预设页面UI更新）
+        sendBroadcast(Intent(BROADCAST_LOOP_STOPPED).apply {
+            setPackage(packageName)
+        })
+        
+        // 广播设备停止状态（让全局停止按钮隐藏）
+        sendBroadcast(Intent(BleService.BROADCAST_DEVICE_STOPPED).apply {
+            setPackage(packageName)
+        })
         
         Log.d(TAG, "Loop stopped")
         stopSelf()
@@ -205,6 +225,24 @@ class LoopPresetService : Service() {
         super.onDestroy()
         handler.removeCallbacks(loopRunnable)
         bleAdvertiser.stopCurrentBroadcast()
+        
+        // 如果服务被外部停止（不是通过 stopLoop()），也要发送停止广播
+        if (isLooping) {
+            isLooping = false
+            
+            // 发送广播通知UI（让预设页面UI更新）
+            sendBroadcast(Intent(BROADCAST_LOOP_STOPPED).apply {
+                setPackage(packageName)
+            })
+            
+            // 广播设备停止状态（让全局停止按钮隐藏）
+            sendBroadcast(Intent(BleService.BROADCAST_DEVICE_STOPPED).apply {
+                setPackage(packageName)
+            })
+            
+            Log.d(TAG, "Service destroyed while looping, broadcasts sent")
+        }
+        
         Log.d(TAG, "Service destroyed")
     }
 }
