@@ -218,13 +218,13 @@ fun PresetEditorScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
         
-        // 右下角悬浮按钮组
+        // 左下角悬浮按钮组
         Column(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
+                .align(Alignment.BottomStart)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.End
+            horizontalAlignment = Alignment.Start
         ) {
             // 取消按钮
             FloatingActionButton(

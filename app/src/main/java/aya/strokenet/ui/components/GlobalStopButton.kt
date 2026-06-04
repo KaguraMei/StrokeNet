@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -41,10 +42,12 @@ fun GlobalStopButton(modifier: Modifier = Modifier) {
                 when (intent?.action) {
                     BleService.BROADCAST_DEVICE_ACTIVE -> {
                         isDeviceActive = true
+                        Log.d("GlobalStopButton", "Device activated")
                     }
                     BleService.BROADCAST_DEVICE_STOPPED,
                     LoopPresetService.BROADCAST_LOOP_STOPPED -> {
                         isDeviceActive = false
+                        Log.d("GlobalStopButton", "Device stopped")
                     }
                 }
             }
@@ -63,7 +66,11 @@ fun GlobalStopButton(modifier: Modifier = Modifier) {
         }
         
         onDispose {
-            context.unregisterReceiver(receiver)
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                Log.w("GlobalStopButton", "Receiver already unregistered")
+            }
         }
     }
     

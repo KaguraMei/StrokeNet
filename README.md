@@ -1,6 +1,6 @@
-# StrokeNet 2.0
+欢迎光临罗德岛工程部！我是本舰的首席工程师可露希尔~ 给你带来全新升级的 **StrokeNet 2.0**！嘿嘿，这可是花了我不少心血的好东西哦！
 
-> 基于 BLE 广播协议的 Android 控制应用 | 内置官方 MCP SDK | AI 原生控制
+> 罗德岛工程部特供：基于 BLE 广播协议的 Android 控制终端 | 内置官方 MCP SDK | 全新 AI 原生控制！
 
 [![Android](https://img.shields.io/badge/Android-7%2B-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-blue.svg)](https://kotlinlang.org)
@@ -10,378 +10,201 @@
 
 ---
 
-**项目状态**: ✅ **2.0 正式版发布**  
-**版本**: 2.0.0 | **MCP SDK**: kotlin-sdk-server 0.6.0 | **Android**: API 24+ (Android 7.0+)  
-**最后更新**: 2026-06-03
+**项目状态**: ✅ **2.0 正式版全线发售！**  
+**系统版本**: 2.0.0 | **MCP SDK**: kotlin-sdk-server 0.6.0 | **Android**: API 24+ (Android 7.0+)  
+**最后更新**: 2026-06-03 （记得常来看看有没有更新哦，博士~）
 
-## 🔗 快速链接
+## 🔗 采购中心快捷通道
 
-- 📱 [下载 APK](../../releases) - 最新发布版本
-- 📖 [完整文档](docs/DOCS_INDEX.md) - 所有文档索引
-- 🚀 [快速开始](docs/MCP_QUICKSTART.md) - 5 分钟上手
-- 🎨 [预设指南](docs/MCP_PRESET_GUIDE.md) - 创建自定义预设
-- 💻 [开发指南](docs/AI_AGENT_GUIDE.md) - AI Agent 综合指南
-- ⚠️ [UUID 协议](docs/UUID_ENCODING.md) - 正确的编码实现
+博士，想要什么直接拿！别忘了点个 Star 赞助一下工程部哦~ ⭐
+- 📱 [下载 APK](../../releases) - 最新批次的安装包都在这！
+- 📖 [完整文档](docs/DOCS_INDEX.md) - PRTS 整理好的全套说明书
+- 🚀 [快速开始](docs/MCP_QUICKSTART.md) - 5 分钟极速上手指南
+- 🎨 [预设指南](docs/MCP_PRESET_GUIDE.md) - 教你怎么调制专属动作配方
+- 💻 [开发指南](docs/AI_AGENT_GUIDE.md) - 给 AI 助理和高阶干员的硬核手册
+- ⚠️ [UUID 协议](docs/UUID_ENCODING.md) - 本天才辛苦解析的正确编码协议，必看！
 
 ---
 
-## ✨ 2.0 核心特性
+## ✨ 2.0 核心黑科技
 
-### 🌐 内置 MCP Server（官方 SDK）
-- ✅ 基于官方 Kotlin MCP SDK 0.6.0
-- ✅ 无需 Termux，一键启动
-- ✅ 20+ MCP 工具，完整控制能力
-- ✅ 标准 HTTP Streamable 传输协议
+### 🌐 罗德岛级内置 MCP Server
+- ✅ 搭载官方 Kotlin MCP SDK 0.6.0，稳如泰山！
+- ✅ 彻底抛弃 Termux，一键点火启动，多省事~
+- ✅ 20+ 个 MCP 工具，从头到脚全方位控制能力
+- ✅ 标准 HTTP Streamable 传输协议，数据跑得飞快！
 
-### 🎨 自定义循环预设
-- ✅ 可视化创建、编辑预设
-- ✅ 多段动作自动循环执行
-- ✅ JSON 格式导入导出分享
-- ✅ 应用启动时自动加载所有预设
+### 🎨 自定义循环预设库
+- ✅ 可视化面板，创建预设就像配制理智液一样简单！
+- ✅ 多段动作自动无缝循环
+- ✅ 支持 JSON 格式导入导出，好东西当然要和别的博士分享~
+- ✅ 终端启动时自动从 PRTS 数据库加载所有预设
 
-### 🔧 完整功能
-- ✅ BLE 广播控制（无需配对）
-- ✅ 前台服务保活 + 失败重试
-- ✅ 完整参数控制（推拉、震动、温度）
-- ✅ 加热定时器（1-10分钟自动关闭）
-- ✅ MCP 管理界面（状态、工具、日志）
-- ✅ Intent 接口（可选 Termux 集成）
+### 🔧 旗舰级功能包
+- ✅ BLE 广播直连控制（直接绕过配对，霸气吧！）
+- ✅ 前台服务强力保活 + 失败重试（切后台绝对不掉线！）
+- ✅ 完整参数控制（推拉、震动、温度，全都在掌控之中）
+- ✅ 加热定时器（1-10分钟自动断电，安全第一~）
+- ✅ 专属 MCP 管理台（状态、工具、日志一目了然）
+- ✅ **支持自定义 MCP `am` 命令式调起！** 随你怎么折腾都能对接上！
 
-## 🚀 快速开始
+## 🚀 极速部署指南
 
-### 编译安装（开发版）
+### 编译安装（给喜欢折腾代码的博士）
 ```bash
 ./gradlew assembleDebug
 adb install app/build/outputs/apk/debug/app-debug.apk
+# 搞定啦！快去试试看~
 ```
 
 ### 打包正式版 APK
-详见 [正式版打包指南](docs/RELEASE_BUILD_GUIDE.md) 📦
+想要拿去量产的话，记得看这本说明书：[正式版打包指南](docs/RELEASE_BUILD_GUIDE.md) 📦
 
-### 授予权限
+### 申请系统权限
+博士，系统门禁还是得敲一下的，不然信号发不出去哦：
 ```bash
 adb shell pm grant aya.strokenet android.permission.BLUETOOTH_ADVERTISE
 adb shell pm grant aya.strokenet android.permission.BLUETOOTH_CONNECT
 adb shell pm grant aya.strokenet android.permission.ACCESS_FINE_LOCATION
 ```
 
-### 测试控制
+### 终端测试
 ```bash
-# 启动推拉
+# 启动推拉（注意看现在的参数标准哦！）
 adb shell am start -n aya.strokenet/.MainActivity \
-  --es action start --ei depth 36 --ei extend 8 --ei retract 8
+  --es action start --ei depth 50 --ei extend 50 --ei retract 50
 
-# 停止
+# 紧急制动！
 adb shell am start -n aya.strokenet/.MainActivity --es action stop
 ```
 
-## 📖 文档
+## 📖 资料室
 
 ### 🎯 快速导航
+**👨‍💻 给你的 AI 助理（Agent）**: [`docs/AI_AGENT_GUIDE.md`](docs/AI_AGENT_GUIDE.md) ⭐⭐⭐⭐⭐  
+把这个塞给 AI，它自己就知道该怎么做了！
 
-**👨‍💻 给 AI Agent**: [`docs/AI_AGENT_GUIDE.md`](docs/AI_AGENT_GUIDE.md) ⭐⭐⭐⭐⭐  
-综合开发指南，整合了所有关键信息。
+**👤 给博士你阅读的**: 从本文档开始，然后去翻翻 [`docs/DOCS_INDEX.md`](docs/DOCS_INDEX.md)，里面有完整的索引。
 
-**👤 给人类开发者**: 从本文档开始，然后查看 [`docs/DOCS_INDEX.md`](docs/DOCS_INDEX.md) 获取完整文档导航。
-
-### 📚 核心文档
-
-#### 🌐 MCP Server（2.0 内置）
+### 📚 核心文档（挑重点看~）
 - **[docs/MCP_QUICKSTART.md](docs/MCP_QUICKSTART.md)** - **5 分钟快速开始** ⚡⚡⚡
-- **[docs/MCP_INTEGRATION_GUIDE.md](docs/MCP_INTEGRATION_GUIDE.md)** - 完整集成指南
-- **[docs/MCP_PRESET_GUIDE.md](docs/MCP_PRESET_GUIDE.md)** - 预设管理和 MCP 工具详解
-
-#### 📦 构建和发布
-- **[docs/RELEASE_BUILD_GUIDE.md](docs/RELEASE_BUILD_GUIDE.md)** - 正式版 APK 打包指南
-
-#### ⚙️ 技术细节
-- **[docs/UUID_ENCODING.md](docs/UUID_ENCODING.md)** - UUID 编码协议详解 ⚠️ 必读
+- **[docs/UUID_ENCODING.md](docs/UUID_ENCODING.md)** - UUID 编码协议详解 ⚠️ **必看！这可是最核心的机密！**
 - **[docs/SERVICE_INTEGRATION.md](docs/SERVICE_INTEGRATION.md)** - BLE Service 集成说明
-- **[docs/DOCS_INDEX.md](docs/DOCS_INDEX.md)** - 完整文档索引
 
-## 🏗️ 项目结构
+## 🔌 通讯控制协议
 
-```
-app/src/main/java/aya/strokenet/
-├── MainActivity.kt              # 主入口，处理 Intent 调用
-├── BleService.kt               # 前台服务，重试逻辑
-├── BleAdvertiser.kt            # BLE 广播工具类
-├── data/model/                 # 数据模型
-│   ├── ControlParams.kt        # 控制参数
-│   └── Preset.kt               # 预设模式
-└── ui/                         # UI 层
-    ├── screens/                # 页面
-    │   ├── ControlScreen.kt    # 控制页面
-    │   ├── PresetsScreen.kt    # 预设页面
-    │   └── SettingsScreen.kt   # 设置页面
-    └── components/             # 可复用组件
-```
+博士，注意听好啦！为了让你和 UI 界面操作起来更直观，**本天才把所有动作参数（除了加热时间和温度）全部统一标准化为 1-100 啦！**
 
-## 🔌 控制协议
+设备底层的那些奇奇怪怪的硬件限制，我都已经在代码里帮你写好自动乘算和映射逻辑了！你在输入指令的时候，闭着眼睛填 1 到 100 的百分比就行啦，是不是很贴心？嘿嘿~
 
-### 参数范围
+### 统一参数标准（UI & 入参规范）
 | 参数 | 范围 | 说明 |
 |------|------|------|
-| depth | 0-72 | 推拉深度 |
-| extendSpeed | 0-15 | 伸出速度 |
-| retractSpeed | 0-15 | 缩回速度 |
-| strength | 0-100 | 入体端强度 |
-| temp | 0-60 | 加热温度（℃）|
+| depth | 1-100 | 推拉深度（已自动映射到底层逻辑） |
+| extendSpeed | 1-100 | 伸出速度（已自动映射到底层逻辑） |
+| retractSpeed | 1-100 | 缩回速度（已自动映射到底层逻辑） |
+| strength | 1-100 | 入体端强度 |
+| temp | 0-60 | 加热温度（℃，硬件绝对值）|
 
-### Intent 调用接口
+*(注：加热倒计时功能支持 1-10 分钟设定)*
 
-所有指令通过 Intent 发送到 MainActivity，自动启动前台服务处理：
+### 🤖 自定义 MCP & Intent 命令式调起
+除了界面操作和内置服务，现在系统**全面支持自定义 MCP `am` 命令式调起！** 所有的指令都可以通过 Intent 发送到 MainActivity，我会让前台服务帮你完美处理好一切：
 
 ```bash
-# 启动推拉
+# 启动推拉 (现在统一用 1-100 的直观数值啦！)
 am start -n aya.strokenet/.MainActivity \
-  --es action start --ei depth 36 --ei extend 8 --ei retract 8
+  --es action start --ei depth 80 --ei extend 50 --ei retract 50
 
-# 运行中调节参数
+# 运行中实时微调参数
 am start -n aya.strokenet/.MainActivity \
-  --es action thrust --ei depth 50 --ei extend 10 --ei retract 10
+  --es action thrust --ei depth 100 --ei extend 80 --ei retract 80
 
-# 设置强度
+# 调节强度
 am start -n aya.strokenet/.MainActivity \
-  --es action strength --ei value 80
+  --es action strength --ei value 90
 
-# 设置温度
+# 设定加热温度
 am start -n aya.strokenet/.MainActivity \
-  --es action temp --ei value 40
+  --es action temp --ei value 42
 
-# 停止
+# 全面停机！
 am start -n aya.strokenet/.MainActivity --es action stop
 ```
 
-### 工作流程
-
+### 信号工作流
 ```
-Intent 调用
+指令下达 (Intent / MCP)
     ↓
-MainActivity 接收
+MainActivity 接收处理
     ↓
-启动 BleService (前台服务)
+启动强力保活的 BleService (前台服务)
     ↓
-BleService 调用 BleAdvertiser
+呼叫 BleAdvertiser
     ↓
-发送 BLE 广播
+把 BLE 广播发射出去！
     ↓
-失败？→ 重试（最多2次，间隔300ms）
+没发成功？→ 自动重试！（最多2次，300ms极速间隔）
     ↓
-通知栏显示结果
+终端通知栏实时汇报战况
     ↓
-自动停止服务
-```
-
-## 🔔 前台服务特性
-
-### 为什么使用前台服务？
-
-官方 APP 的问题：切后台就停止广播，导致设备卡住。
-
-StrokeNet 的解决方案：
-- ✅ 前台服务保活，切后台继续运行
-- ✅ 失败自动重试（最多2次）
-- ✅ 通知栏实时反馈状态
-- ✅ 任务完成自动停止
-
-### 通知栏状态示例
-
-```
-发送中: 推拉: 深度=50 伸=10 缩=10
-重试中 (1/2): 推拉: 深度=50 伸=10 缩=10
-✓ 已发送: 推拉: 深度=50 伸=10 缩=10
-✗ 发送失败: 推拉: 深度=50 (错误码: -4)
+功成身退，自动休眠~
 ```
 
-详见 [SERVICE_INTEGRATION.md](docs/SERVICE_INTEGRATION.md)
+## 🔔 为什么一定要用前台服务？
 
-## ⚠️ 重要提示
+博士你是不是想问，为什么要搞得这么复杂？
+因为外面那些粗糙的官方 APP，只要一切换到后台，系统就会把它们的广播切断！设备直接卡死！我们罗德岛的工程部怎么能容忍这种低级失误？
 
-### UUID 编码协议
+所以我给 StrokeNet 加上了：
+- ✅ **前台不死鸟保活**，就算你切出去看终端录像它也能继续跑！
+- ✅ **智能防丢重试**（最多2次），确保每一次脉冲都精准传达。
+- ✅ **通知栏实时战报**，随时了解设备运行状态。
 
-本项目的 BLE 协议实现**完全基于官方 APP 的反编译结果**。
+## ⚠️ 核心机密提示
 
-感谢 **[用 AI 远程控制你的 Cachito 大秀炮机](https://claude.ai/public/artifacts/921eda06-e567-4cde-85af-8cde831a608f)** 教程提供的逆向思路和 MCP 集成灵感，但需要指出：**该文章中给出的 UUID 编码逻辑并不正确**（参数位置、校验和计算等与官方实现不符）。
+### 关于 UUID 编码的真相
 
-**本项目实现的正确编码协议请参考**：[docs/UUID_ENCODING.md](docs/UUID_ENCODING.md) 📖
+听好了博士，本项目的 BLE 协议可是我完全基于官方终端逆向解析出来的成果！
 
-主要差异：
-- ✅ 完整的 UUID 格式：`710003XX-YYYY-ZZZZ-0000-WWWWWWWWWWCC`
-- ✅ 正确的参数编码位置（最后12位）
-- ✅ 校验和计算机制
-- ✅ 设备ID持久化存储
-- ✅ 准确的参数映射公式
+这里得感谢一下 [用 AI 远程控制你的 Cachito 大秀炮机](https://claude.ai/public/artifacts/921eda06-e567-4cde-85af-8cde831a608f) 这篇报告提供的思路，它确实给了我做 MCP 集成的灵感。**但是！那篇文章里的 UUID 编码逻辑是有严重偏差的哦！**（参数位置和校验和算得都不对，官方设备可不吃那一套）。
 
-详见 [UUID_ENCODING.md](docs/UUID_ENCODING.md)
+为了不让你走弯路，**本天才已经把完全正确的编码规则写在** [docs/UUID_ENCODING.md](docs/UUID_ENCODING.md) 里啦！
+- ✅ 完美的 UUID 格式：`710003XX-YYYY-ZZZZ-0000-WWWWWWWWWWCC`
+- ✅ 精准的参数编码位置和真正的校验和计算机制！
+  如果你也想自己造设备的话，一定记得以我的这份蓝图为准哦！
 
-### 权限要求
-
-Android 12+ 必须手动在设置中授予权限：
+### 权限小贴士
+Android 12 以上的系统越来越小气了，你得亲自去设置里给它批条子：
 - 设置 → 应用 → StrokeNet → 权限
-- 开启：蓝牙、位置信息（精确位置）
+- 把 **蓝牙** 和 **位置信息（精确位置）** 都打开才行！
 
-### 推拉参数规则
+## 🤝 代理控制方案
 
-推拉的三个参数（depth / extendSpeed / retractSpeed）必须同时设置，设备才会执行动作。
-
-## 🤝 控制方式
-
-### 方式一：内置 MCP Server（推荐）🌐
-
-**StrokeNet 2.0** 内置标准 MCP Server，**无需 Termux**，一键启动即可使用。
-
-#### 技术栈
-- **Kotlin MCP SDK 0.6.0** - 官方标准实现
-- **Ktor 3.0** - 高性能 HTTP 服务器
-- **Streamable HTTP** - 标准 MCP 传输协议
-
-#### 📱 本地模式
-- 同一 WiFi 网络下访问
-- 低延迟，稳定可靠
-- URL: `http://192.168.x.x:8080/mcp`
-
-#### ⚡ 快速开始
-
-1. 在 App 中打开「MCP」页面
-2. 点击「启动服务」按钮
-3. 复制显示的服务地址（包含 `/mcp` 路径）
-4. 在 AI 工具（Claude Desktop/Kiro）中配置 MCP Server
-5. 通过自然语言控制设备
-
-#### 配置示例
+### 方案 A：内置 MCP Server（推荐！🌐）
+我都把好东西集成进去了，不需要 Termux，一键开启！延迟低，超级稳定！在你的 AI 助理（比如 Claude Desktop）里配置一下就能用啦：
 
 ```json
 {
   "mcpServers": {
     "strokenet": {
-      "url": "http://192.168.1.5:8080/mcp"
+      "url": "http://192.168.x.x:8080/mcp"
     }
   }
 }
 ```
 
-#### 🎨 MCP 预设管理
+里面准备好了全套预设管理的指令（列出、创建、导入、运行...），翻翻 [MCP_PRESET_GUIDE.md](docs/MCP_PRESET_GUIDE.md) 就能全盘掌握！
 
-StrokeNet 2.0 支持通过 MCP 完整管理预设：
-
-- 📋 `list_presets` - 列出所有预设
-- 📖 `get_official_presets` - 获取官方预设
-- 📝 `get_custom_presets` - 获取自定义预设
-- ➕ `create_custom_preset` - 创建自定义预设
-- ✏️ `update_custom_preset` - 更新自定义预设
-- ▶️ `run_preset` - 运行预设
-- ⏹️ `stop_preset` - 停止预设
-- 🗑️ `delete_custom_preset` - 删除自定义预设
-- 📤 `export_custom_presets` - 导出预设
-- 📥 `import_custom_presets` - 导入预设
-
-详见 **[MCP_PRESET_GUIDE.md](docs/MCP_PRESET_GUIDE.md)** 和 **[MCP_INTEGRATION_GUIDE.md](docs/MCP_INTEGRATION_GUIDE.md)** 📖
-
-### 方式二：Termux + Python MCP（可选）
-
-> ⚠️ **注意**：StrokeNet 2.0 推荐使用内置 MCP Server。Termux 方式保留用于需要自定义 Python MCP 工具的高级用户。
-
-如果你需要：
-- 自定义 Python MCP 工具
-- 使用 fastMCP 快速原型开发
-- 1.0 版本的 Termux 工作流
-
-请查看：**[Termux MCP 配置指南（1.0 版本留档）](docs/TERMUX_MCP_GUIDE.md)** 📖
-
----
-
-## 🎯 2.0 版本新特性
-
-### ✅ 已实现
-
-- ✅ **内置 MCP Server** - 基于官方 Kotlin MCP SDK 0.6.0
-- ✅ **自定义循环预设** - 可视化创建、编辑、运行
-- ✅ **预设导入导出** - JSON 格式分享
-- ✅ **加热定时器** - 温度 + 自动关闭时长
-- ✅ **应用启动预加载** - 官方预设 + 自定义预设自动加载
-- ✅ **完整 MCP 工具集** - 20+ 工具，涵盖所有功能
-- ✅ **MCP 管理界面** - 服务状态、工具列表、请求日志
-
-### 🔄 架构升级
-
-**1.x → 2.0**:
-- ❌ 需要 Termux 环境 → ✅ 内置 MCP Server
-- ❌ 5 个基础工具 → ✅ 20+ 完整工具
-- ❌ 无预设管理 → ✅ 完整预设系统
-- ❌ 手动安装依赖 → ✅ 开箱即用
-
-## 🔧 开发
-
-### 系统要求
-- Android 7 (API 24) 或更高版本
-- JDK 11+
-- Android SDK
-- 支持 BLE 的设备
-
-### 调试
-```bash
-# 查看日志
-adb logcat | grep -E "BleAdvertiser|BleService"
-
-# 查看 Service 状态
-adb shell dumpsys activity services aya.strokenet
-
-# 验证广播（使用 nRF Connect Scanner）
-```
-
-### 测试脚本
-```bash
-# 测试 MCP 服务调用
-bash test_mcp_service.sh
-```
+### 方案 B：Termux + Python MCP（备用库）
+如果是喜欢自己写 Python 脚本的高阶干员，我们依然保留了 1.0 时代的玩法。去翻看 **[Termux MCP 配置指南（1.0 版本留档）](docs/TERMUX_MCP_GUIDE.md)** 吧~
 
 ## 📄 许可证
 
-MIT License - 详见 [LICENSE](LICENSE)
+MIT License - 随便拿去用，不过记得本天才的署名哦！详见 [LICENSE](LICENSE)。
 
 ## 🙏 致谢
 
-本项目的 BLE 逆向工程和 MCP 集成方案受到以下教程的启发：
+最后，还是得按规矩致谢一下那篇《用 AI 远程控制你的 Cachito 大秀炮机：BLE 逆向 + MCP 全链路教程》，虽然代码逻辑有坑，但它关于 BLE 广播模式代替传统 GATT 连接的思路，还有 MCP 全链路的构想，确实非常精彩！
 
-**[用 AI 远程控制你的 Cachito 大秀炮机：BLE 逆向 + MCP 全链路教程](https://claude.ai/public/artifacts/921eda06-e567-4cde-85af-8cde831a608f)**
-
-该教程详细讲解了：
-- 🔍 如何使用 nRF Connect Scanner 逆向 BLE 广播协议
-- 📡 BLE Advertiser 模式与传统 GATT 连接的区别
-- 🤖 通过 MCP 让 AI 控制智能设备的完整链路
-- 🚀 Termux + MCP 实现远程 AI 控制
-
-感谢作者分享的宝贵经验，为本项目提供了核心技术思路。
-
-### ⚠️ 重要说明
-
-**本项目的 BLE 协议实现完全基于官方 APP 的反编译结果**。该教程虽然提供了很好的思路，但**文章中的 UUID 编码逻辑并不正确**（参数位置、校验和计算等与官方实现不符）。
-
-**本项目实现的正确编码协议请参考**：[UUID_ENCODING.md](docs/UUID_ENCODING.md) ⚠️
-
-主要差异：
-- ✅ 完整 UUID 格式：`710003XX-YYYY-ZZZZ-0000-WWWWWWWWWWCC`
-- ✅ 正确的参数编码位置（最后12位）
-- ✅ 校验和计算机制
-- ✅ 设备 ID 持久化存储
-- ✅ 准确的参数映射公式
-
-如果你在开发类似项目，请以本项目的实现和文档为准。
-
----
-
-**项目状态**: ✅ **2.0 正式版发布**  
-**版本**: 2.0.0  
-**MCP SDK**: kotlin-sdk-server 0.6.0  
-**Android**: API 24+ (Android 7.0+)  
-**最后更新**: 2026-06-03
-
-## 🔗 快速链接
-
-- 📱 [下载 APK](../../releases) - 最新发布版本
-- 📖 [完整文档](docs/DOCS_INDEX.md) - 所有文档索引
-- 🚀 [快速开始](docs/MCP_QUICKSTART.md) - 5 分钟上手
-- 🎨 [预设指南](docs/MCP_PRESET_GUIDE.md) - 创建自定义预设
-- 💻 [开发指南](docs/AI_AGENT_GUIDE.md) - AI Agent 综合指南
-- ⚠️ [UUID 协议](docs/UUID_ENCODING.md) - 正确的编码实现
+好啦，简报就到这里！博士，赶快去体验 StrokeNet 2.0 吧！如果用得开心，别忘了给罗德岛工程部（的项目仓库）多投几颗星星（Star）哦！有龙门币赞助就更完美啦！(￣▽￣)～■干杯□～(￣▽￣)

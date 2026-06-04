@@ -54,9 +54,10 @@ private fun registerTools(server: Server, context: Context) {
                     ===== StrokeNet 设备控制指南 =====
                     
                     【核心原则】
-                    1. 优先使用 send_all 工具一次性设置所有参数，避免多次调用
-                    2. 所有参数范围都是 1-100，数值越大效果越强
-                    3. 调用 run_preset 前必须先调用 list_presets 获取正确的 ID
+                    1. 优先使用 send_all 工具一次性设置所有运动参数（推拉+震动）
+                    2. 加热必须使用 start_heating 工具，并指定时长（1-10分钟）以确保安全
+                    3. 所有参数范围都是 1-100，数值越大效果越强
+                    4. 调用 run_preset 前必须先调用 list_presets 获取正确的 ID
                     
                     【参数体感说明】
                     • depth（推拉深度）：
@@ -93,11 +94,17 @@ private fun registerTools(server: Server, context: Context) {
                     • 用户说"浅一点" → depth -20
                     • 用户说"强一点" → strength +20
                     
+                    【加热使用（重要）】
+                    1. 加热必须使用 start_heating 工具，必须指定时长（1-10分钟）
+                    2. 推荐温度：35-40°C（接近体温最舒适）
+                    3. 推荐时长：5-10分钟
+                    4. 到时后会自动停止加热，确保安全
+                    5. ⚠️ send_all 工具不包含温度参数，避免无定时器的安全隐患
+                    
                     【注意事项】
-                    1. 加热需要使用 start_heating，必须指定时长（1-10分钟）
-                    2. 停止所有运动使用 stop_all
-                    3. 预设会循环播放直到手动停止
-                    4. 每次执行后记得在回复中总结当前设备状态
+                    1. 停止所有运动使用 stop_all
+                    2. 预设会循环播放直到手动停止
+                    3. 每次执行后记得在回复中总结当前设备状态
                     
                     ===================================
                 """.trimIndent())
@@ -385,7 +392,7 @@ private fun registerTools(server: Server, context: Context) {
     // 5. 【推荐】全参数发送（AI 应优先使用此工具）
     server.addTool(
         name = "send_all",
-        description = "【推荐：优先使用】一键设置设备的所有运动参数（推拉+震动+温度）。当你需要同时调整设备状态时，请务必优先使用此工具，而非多次调用单个工具。这是最高效的控制方式。",
+        description = "【推荐：优先使用】一键设置设备的运动参数（推拉+震动）。当你需要同时调整设备状态时，请务必优先使用此工具，而非多次调用单个工具。注意：温度加热请使用 start_heating 工具（需指定时长以确保安全）。",
         inputSchema = ToolSchema(
             properties = buildJsonObject {
                 putJsonObject("depth") {
@@ -416,14 +423,6 @@ private fun registerTools(server: Server, context: Context) {
                     put("maximum", 100)
                     putJsonArray("examples") { add(50); add(70); add(30) }
                 }
-                putJsonObject("temperature") {
-                    put("type", "number")
-                    put("description", "温度值，0表示不加热，1-60为加热温度（°C）。通常设置为0或30-40之间。")
-                    put("minimum", 0)
-                    put("maximum", 60)
-                    put("default", 0)
-                    putJsonArray("examples") { add(0); add(35); add(40) }
-                }
             },
             required = listOf("depth", "extend", "retract", "strength")
         )
@@ -450,6 +449,8 @@ private fun registerTools(server: Server, context: Context) {
                 putExtra(BleService.EXTRA_EXTEND, extend)
                 putExtra(BleService.EXTRA_RETRACT, retract)
                 putExtra(BleService.EXTRA_STRENGTH, strength)
+                // 不再传递温度参数，温度固定为 0
+                putExtra(BleService.EXTRA_TEMP, 0)
             }
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -493,6 +494,7 @@ private fun registerTools(server: Server, context: Context) {
                             • 速度模式：$speedPattern
                             • 震动强度：$strength ($vibLevel)
                             
+                            提示：如需启动加热，请使用 start_heating 工具（必须指定时长以确保安全）。
                             设备正在以当前参数运行，用户可随时调整或停止。
                         """.trimIndent()
                     )

@@ -52,6 +52,14 @@ fun CustomPresetsScreen(
     // 确保每次进入页面时刷新数据
     LaunchedEffect(Unit) {
         viewModel.loadPresets()
+        
+        // 检查 LoopPresetService 是否还在运行
+        val isServiceRunning = isServiceRunning(context, aya.strokenet.LoopPresetService::class.java)
+        if (!isServiceRunning && viewModel.playingPresetId != null) {
+            // 服务已停止但 UI 还显示播放中，清空状态
+            android.util.Log.d("CustomPresetsScreen", "Service not running, clearing playingPresetId")
+            viewModel.playingPresetId = null
+        }
     }
     
     // 监听循环播放停止广播
@@ -60,12 +68,14 @@ fun CustomPresetsScreen(
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action) {
                     aya.strokenet.LoopPresetService.BROADCAST_LOOP_STOPPED -> {
+                        android.util.Log.d("CustomPresetsScreen", "Received BROADCAST_LOOP_STOPPED")
                         viewModel.playingPresetId = null
                     }
                     aya.strokenet.LoopPresetService.BROADCAST_LOOP_STARTED -> {
                         // MCP 启动预设时的广播
                         val presetId = intent.getStringExtra("preset_id")
                         if (presetId != null) {
+                            android.util.Log.d("CustomPresetsScreen", "Received BROADCAST_LOOP_STARTED: $presetId")
                             viewModel.playingPresetId = presetId
                         }
                     }
@@ -85,7 +95,11 @@ fun CustomPresetsScreen(
         }
         
         onDispose {
-            context.unregisterReceiver(receiver)
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                android.util.Log.w("CustomPresetsScreen", "Receiver already unregistered")
+            }
         }
     }
     
@@ -320,13 +334,13 @@ fun CustomPresetsScreen(
             }
         }
         
-        // 右下角悬浮按钮组
+        // 左下角悬浮按钮组（避免被全局停止按钮挡住）
         Column(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
+                .align(Alignment.BottomStart)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.End
+            horizontalAlignment = Alignment.Start
         ) {
             // 导入按钮
             FloatingActionButton(
@@ -682,4 +696,18 @@ fun InfoChip(
             color = iOSBlue
         )
     }
+}
+
+/**
+ * 检查指定服务是否正在运行
+ */
+private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
+    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+    @Suppress("DEPRECATION")
+    for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
+        if (serviceClass.name == service.service.className) {
+            return true
+        }
+    }
+    return false
 }
