@@ -74,7 +74,6 @@ android {
         
         // 关键配置：确保 .so 文件被提取到磁盘
         jniLibs {
-            useLegacyPackaging = true
         }
     }
     

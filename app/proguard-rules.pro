@@ -74,3 +74,33 @@
     public static *** v(...);
     public static *** i(...);
 }
+
+# --- Netty 相关的忽略规则 ---
+-dontwarn io.netty.**
+-keep class io.netty.** { *; }
+
+# 忽略 Netty 引用的缺失类（这些类在 Android 上不需要）
+-dontwarn java.lang.management.**
+-dontwarn javax.management.**
+-dontwarn org.apache.log4j.**
+-dontwarn org.apache.logging.log4j.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.conscrypt.**
+-dontwarn org.eclipse.jetty.npn.**
+-dontwarn org.eclipse.jetty.alpn.**
+-dontwarn reactor.blockhound.**
+-dontwarn sun.security.**
+-dontwarn com.google.protobuf.**
+
+# --- Ktor 相关的忽略规则 ---
+-dontwarn io.ktor.**
+-keep class io.ktor.** { *; }
+
+# --- Kotlin Logging 和 SLF4J ---
+-dontwarn org.slf4j.**
+-dontwarn io.github.oshai.kotlinlogging.**
+
+# --- 保持 MCP SDK 的序列化类不被混淆 ---
+-keepattributes Signature, Annotation, InnerClasses
+-keep class io.modelcontextprotocol.** { *; }
+-keep class kotlinx.serialization.json.** { *; }
