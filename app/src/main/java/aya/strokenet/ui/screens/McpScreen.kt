@@ -165,13 +165,57 @@ private fun InfoCard() {
             }
         }
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         
-        Text(
-            text = "⚠️ 注意：手机和 AI 工具设备需要在同一 WiFi 网络下",
-            fontSize = 12.sp,
-            color = iOSTextSecondary.copy(alpha = 0.8f)
-        )
+        // 使用提示
+        Surface(
+            color = iOSRed.copy(alpha = 0.08f),
+            shape = MaterialTheme.shapes.small
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = iOSRed,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "重要提示",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = iOSTextPrimary
+                    )
+                }
+                
+                Text(
+                    text = "• 手机和 AI 工具设备需在同一 WiFi 网络下",
+                    fontSize = 12.sp,
+                    color = iOSTextSecondary,
+                    lineHeight = 18.sp
+                )
+                
+                Text(
+                    text = "• 建议多任务列表中给本应用加锁，保持后台运行，或者也可以使用分屏模式",
+                    fontSize = 12.sp,
+                    color = iOSTextSecondary,
+                    lineHeight = 18.sp
+                )
+                
+                Text(
+                    text = "• 若 AI 工具获取工具列表时间很长，请重新唤起本 APP，一般即可正常加载",
+                    fontSize = 12.sp,
+                    color = iOSTextSecondary,
+                    lineHeight = 18.sp
+                )
+            }
+        }
     }
 }
 
@@ -255,6 +299,44 @@ private fun StatusCard(
                     Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
                 }
             )
+            
+            // localhost 地址提示
+            Spacer(modifier = Modifier.height(8.dp))
+            val localhostUrl = it.replace(Regex("http://[0-9.]+:"), "http://localhost:")
+            UrlDisplay(
+                label = "本机调用地址（同一设备上的应用可使用）",
+                url = localhostUrl,
+                onCopy = { 
+                    copyToClipboard(context, localhostUrl)
+                    Toast.makeText(context, "已复制本机地址到剪贴板", Toast.LENGTH_SHORT).show()
+                }
+            )
+            // SSE 连接提示
+            Spacer(modifier = Modifier.height(8.dp))
+            Surface(
+                color = iOSBlue.copy(alpha = 0.08f),
+                shape = MaterialTheme.shapes.small
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lightbulb,
+                        contentDescription = null,
+                        tint = iOSBlue,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "若 AI 工具获取工具列表时间很长，请重新唤起本 APP，一般即可正常加载",
+                        fontSize = 12.sp,
+                        color = iOSTextSecondary,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+
         }
         
         // 错误信息
