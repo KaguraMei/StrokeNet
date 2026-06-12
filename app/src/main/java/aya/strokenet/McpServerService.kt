@@ -258,7 +258,7 @@ class McpServerService : Service() {
             }
         }
     }
-    
+
     /**
      * 启动 Ktor HTTP Server (使用官方 MCP SDK)
      */
@@ -270,74 +270,51 @@ class McpServerService : Service() {
                 it.stop(500, 500)
                 ktorServer = null
             }
-            
+
             // 创建 MCP Server 实例
             val mcpServer = createStrokeNetMcpServer(this)
-            
+
             ktorServer = embeddedServer(Netty, port = port) {
-                // 安装 CORS (支持浏览器客户端如 MCP Inspector)
+                // 1. 安装 CORS (保持不变，支持浏览器和 AI 客户端)
                 install(CORS) {
-                    anyHost()  // 允许任何主机访问（包括局域网 IP）
+                    anyHost()
                     allowMethod(HttpMethod.Options)
                     allowMethod(HttpMethod.Get)
                     allowMethod(HttpMethod.Post)
                     allowMethod(HttpMethod.Delete)
-                    allowMethod(HttpMethod.Put)
-                    allowMethod(HttpMethod.Patch)
                     allowNonSimpleContentTypes = true
-                    allowCredentials = true
-                    // MCP 协议相关 Header
                     allowHeader("Mcp-Session-Id")
                     allowHeader("Mcp-Protocol-Version")
                     allowHeader(HttpHeaders.ContentType)
-                    allowHeader(HttpHeaders.Authorization)
-                    allowHeader(HttpHeaders.Accept)
-                    allowHeader(HttpHeaders.Host)
+                    allowHeader(HttpHeaders.Host) // 允许 Host Header
                     exposeHeader("Mcp-Session-Id")
                     exposeHeader("Mcp-Protocol-Version")
                 }
-                
+
+                // 2. ⚡ 核心改动：直接在 Application 级别调用 mcpStreamableHttp
+                // 源码显示 Application.mcpStreamableHttp 会自动处理 install(SSE) 和路由挂载
+                mcpStreamableHttp(
+                    path = "/mcp",
+                    enableDnsRebindingProtection = false // ✅ 关键：关闭 Host 校验，允许局域网 IP
+                ) {
+                    // 这里的 this 是 RoutingContext
+                    mcpServer
+                }
+
+                // 3. 其他普通路由
                 routing {
-                    // 健康检查端点
                     get("/") {
                         call.respondText("StrokeNet MCP Server Running", ContentType.Text.Plain)
                     }
-                    
-                    // MCP 路由组，在此处理 Host header 问题
-                    route("/mcp") {
-                        // 在 MCP SDK 处理之前拦截请求
-                        intercept(ApplicationCallPipeline.Call) {
-                            val originalHost = call.request.headers["Host"]
-                            val method = call.request.local.method.value
-                            Log.d(TAG, "MCP Request - Original Host: $originalHost, Method: $method")
-                            
-                            // 如果 Host 是 IP 地址（局域网访问），允许通过
-                            // MCP SDK 会检查 Host，我们这里做一个日志记录
-                            // 实际的 Host 处理由 SDK 完成，我们只是记录和监控
-                            if (originalHost != null && originalHost.matches(Regex("^\\d+\\.\\d+\\.\\d+\\.\\d+(:\\d+)?\$"))) {
-                                Log.d(TAG, "Accepting LAN request from IP: $originalHost")
-                            }
-                            
-                            proceed()
-                        }
-                        
-                        // 使用 SDK 的 Streamable HTTP 扩展挂载 MCP
-                        // 注意：mcpStreamableHttp 会自动处理所有 MCP 协议相关的逻辑
-                        mcpStreamableHttp {
-                            mcpServer
-                        }
-                    }
                 }
             }.start(wait = false)
-            
-            Log.d(TAG, "Ktor server started on port $port with MCP SDK (LAN access enabled)")
-            
+
+            Log.d(TAG, "Ktor server started on port $port with Host check disabled")
+
         } catch (e: Exception) {
             val errorMsg = when {
-                e.message?.contains("Address already in use") == true -> 
+                e.message?.contains("Address already in use") == true ->
                     "端口 $port 已被占用，请稍后重试"
-                e.message?.contains("bind") == true -> 
-                    "无法绑定端口 $port"
                 else -> "Ktor 启动失败: ${e.message}"
             }
             throw Exception(errorMsg, e)
