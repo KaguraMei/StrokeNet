@@ -3,6 +3,7 @@ package aya.strokenet
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
@@ -144,14 +145,14 @@ class McpServerService : Service() {
                 // 如果服务已经在运行，保持前台状态；如果是stopped状态，不主动进入前台
                 if (currentStatus != "stopped") {
                     val notification = buildNotification(getNotificationText())
-                    startForeground(NOTIFICATION_ID, notification)
+                    startForegroundWithType(notification)
                 }
                 handleIntent(intent)
             }
             ACTION_START_LOCAL -> {
                 // 启动服务时进入前台模式
                 val initialNotification = buildNotification("MCP 服务正在启动...")
-                startForeground(NOTIFICATION_ID, initialNotification)
+                startForegroundWithType(initialNotification)
                 handleIntent(intent)
             }
             ACTION_STOP -> {
@@ -192,9 +193,34 @@ class McpServerService : Service() {
     private fun restoreForegroundService() {
         val notificationText = getNotificationText()
         val notification = buildNotification(notificationText)
-        startForeground(NOTIFICATION_ID, notification)
+        startForegroundWithType(notification)
         
         Log.d(TAG, "Foreground service restored with status: $currentStatus")
+    }
+    
+    /**
+     * 使用正确的类型启动前台服务（兼容 Android 14+）
+     */
+    private fun startForegroundWithType(notification: Notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // Android 14+ (API 34+) 必须指定前台服务类型
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android 10+ 支持类型但不强制
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            // Android 9 及以下
+            startForeground(NOTIFICATION_ID, notification)
+        }
+        Log.d(TAG, "Foreground service started with DATA_SYNC type (Build: ${Build.VERSION.SDK_INT})")
     }
     
     private fun handleIntent(intent: Intent) {

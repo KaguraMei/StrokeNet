@@ -13,6 +13,7 @@
     <!-- 前台服务权限 (Android 9+) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     
     <!-- 通知权限 (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -24,6 +25,9 @@
     
     <!-- 电源锁：防止 CPU 休眠和 WiFi 降速 (MCP Server 后台保活) -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- 电池优化白名单：允许后台无限制运行 (MCP Server 稳定性) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
 
@@ -69,12 +73,12 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
         
-        <!-- MCP Server 服务 -->
+        <!-- MCP Server 服务 (使用 dataSync 类型，适合网络服务) -->
         <service
             android:name=".McpServerService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
+            android:foregroundServiceType="dataSync" />
     </application>
 
 </manifest>
