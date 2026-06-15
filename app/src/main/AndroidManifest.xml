@@ -25,6 +25,12 @@
     <!-- 电源锁：防止 CPU 休眠和 WiFi 降速 (MCP Server 后台保活) -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- 电池优化豁免：防止后台网络被切断 (MCP Server 核心) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- 前台服务类型权限 (Android 14+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
 
     <application
@@ -74,7 +80,7 @@
             android:name=".McpServerService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
+            android:foregroundServiceType="dataSync|connectedDevice" />
     </application>
 
 </manifest>

@@ -1,6 +1,11 @@
 package aya.strokenet.ui.screens
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -33,6 +38,13 @@ fun SettingsScreen(
     val versionName = remember { getVersionName(context) }
     val versionCode = remember { getVersionCode(context) }
     
+    // 检查电池优化状态
+    var isBatteryOptimizationIgnored by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        isBatteryOptimizationIgnored = checkBatteryOptimization(context)
+    }
+    
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -40,6 +52,104 @@ fun SettingsScreen(
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // MCP 后台稳定性设置
+        GlassPanel {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(
+                            if (isBatteryOptimizationIgnored) iOSGreen.copy(alpha = 0.1f) else iOSYellow.copy(alpha = 0.1f),
+                            RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        if (isBatteryOptimizationIgnored) Icons.Default.BatteryChargingFull else Icons.Default.BatteryAlert,
+                        contentDescription = null,
+                        tint = if (isBatteryOptimizationIgnored) iOSGreen else iOSYellow,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        "MCP 后台保活",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = iOSTextPrimary
+                    )
+                    Text(
+                        if (isBatteryOptimizationIgnored) "已优化" else "需要配置",
+                        fontSize = 13.sp,
+                        color = if (isBatteryOptimizationIgnored) iOSGreen else iOSYellow
+                    )
+                }
+            }
+
+            Text(
+                text = "为了确保 MCP Server 在后台稳定运行，建议进行以下设置：",
+                fontSize = 14.sp,
+                color = iOSTextPrimary,
+                lineHeight = 20.sp,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            
+            // 电池优化按钮
+            Button(
+                onClick = {
+                    requestBatteryOptimization(context)
+                    // 延迟刷新状态
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        isBatteryOptimizationIgnored = checkBatteryOptimization(context)
+                    }, 1000)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isBatteryOptimizationIgnored) iOSGreen else iOSBlue
+                )
+            ) {
+                Icon(
+                    if (isBatteryOptimizationIgnored) Icons.Default.CheckCircle else Icons.Default.Settings,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    if (isBatteryOptimizationIgnored) "电池优化已关闭" else "关闭电池优化",
+                    fontSize = 15.sp
+                )
+            }
+            
+            // 多任务上锁提示
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(iOSBlue.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                    .padding(12.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "📌 多任务上锁（推荐）",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = iOSBlue
+                    )
+                    Text(
+                        text = "打开多任务界面，长按 StrokeNet 卡片，点击锁定图标，防止系统清理。",
+                        fontSize = 12.sp,
+                        color = iOSTextSecondary,
+                        lineHeight = 18.sp
+                    )
+                }
+            }
+        }
         // 关于应用
         GlassPanel {
             Row(
@@ -227,6 +337,43 @@ private fun SettingItem(
             fontWeight = FontWeight.Medium,
             color = iOSTextSecondary
         )
+    }
+}
+
+/**
+ * 检查是否已忽略电池优化
+ */
+private fun checkBatteryOptimization(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        return pm.isIgnoringBatteryOptimizations(context.packageName)
+    }
+    return true // Android 6.0 以下不需要此权限
+}
+
+/**
+ * 请求忽略电池优化
+ */
+private fun requestBatteryOptimization(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
+            try {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsScreen", "Failed to request battery optimization", e)
+                // 如果打开失败，尝试打开通用电池优化设置页面
+                try {
+                    val fallbackIntent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                    context.startActivity(fallbackIntent)
+                } catch (e2: Exception) {
+                    android.util.Log.e("SettingsScreen", "Failed to open battery settings", e2)
+                }
+            }
+        }
     }
 }
 
