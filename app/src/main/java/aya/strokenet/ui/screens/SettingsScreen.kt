@@ -122,7 +122,7 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    if (isBatteryOptimizationIgnored) "✓ 电池优化已关闭" else "关闭电池优化",
+                    if (isBatteryOptimizationIgnored) "电池优化已关闭" else "关闭电池优化",
                     fontSize = 15.sp
                 )
             }
@@ -142,7 +142,7 @@ fun SettingsScreen(
                         color = iOSBlue
                     )
                     Text(
-                        text = "打开多任务界面，长按 StrokeNet 卡片，点击"锁定"图标，防止系统清理。",
+                        text = "打开多任务界面，长按 StrokeNet 卡片，点击锁定图标，防止系统清理。",
                         fontSize = 12.sp,
                         color = iOSTextSecondary,
                         lineHeight = 18.sp

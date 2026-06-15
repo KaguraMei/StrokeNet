@@ -7,6 +7,7 @@ val iOSBg = Color(0xFFF2F2F7)
 val iOSBlue = Color(0xFF007AFF)
 val iOSGreen = Color(0xFF34C759)
 val iOSRed = Color(0xFFFF3B30)
+val iOSYellow = Color(0xFFFFCC00)
 val iOSTextPrimary = Color(0xFF1C1C1E)
 val iOSTextSecondary = Color(0xFF8E8E93)
 

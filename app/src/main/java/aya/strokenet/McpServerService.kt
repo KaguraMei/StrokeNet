@@ -3,7 +3,6 @@ package aya.strokenet
 import android.app.*
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
@@ -145,14 +144,30 @@ class McpServerService : Service() {
                 // 如果服务已经在运行，保持前台状态；如果是stopped状态，不主动进入前台
                 if (currentStatus != "stopped") {
                     val notification = buildNotification(getNotificationText())
-                    startForegroundWithType(notification)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(
+                            NOTIFICATION_ID,
+                            notification,
+                            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                        )
+                    } else {
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
                 }
                 handleIntent(intent)
             }
             ACTION_START_LOCAL -> {
                 // 启动服务时进入前台模式
                 val initialNotification = buildNotification("MCP 服务正在启动...")
-                startForegroundWithType(initialNotification)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        initialNotification,
+                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                    )
+                } else {
+                    startForeground(NOTIFICATION_ID, initialNotification)
+                }
                 handleIntent(intent)
             }
             ACTION_STOP -> {
@@ -193,34 +208,17 @@ class McpServerService : Service() {
     private fun restoreForegroundService() {
         val notificationText = getNotificationText()
         val notification = buildNotification(notificationText)
-        startForegroundWithType(notification)
-        
-        Log.d(TAG, "Foreground service restored with status: $currentStatus")
-    }
-    
-    /**
-     * 使用正确的类型启动前台服务（兼容 Android 14+）
-     */
-    private fun startForegroundWithType(notification: Notification) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            // Android 14+ (API 34+) 必须指定前台服务类型
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 NOTIFICATION_ID,
                 notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10+ 支持类型但不强制
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             )
         } else {
-            // Android 9 及以下
             startForeground(NOTIFICATION_ID, notification)
         }
-        Log.d(TAG, "Foreground service started with DATA_SYNC type (Build: ${Build.VERSION.SDK_INT})")
+        
+        Log.d(TAG, "Foreground service restored with status: $currentStatus")
     }
     
     private fun handleIntent(intent: Intent) {
@@ -300,7 +298,8 @@ class McpServerService : Service() {
             // 创建 MCP Server 实例
             val mcpServer = createStrokeNetMcpServer(this)
 
-            ktorServer = embeddedServer(Netty, port = port) {
+            ktorServer = embeddedServer(Netty, port = port, host = "0.0.0.0") {
+
                 // 1. 安装 CORS (保持不变，支持浏览器和 AI 客户端)
                 install(CORS) {
                     anyHost()
@@ -335,7 +334,7 @@ class McpServerService : Service() {
                 }
             }.start(wait = false)
 
-            Log.d(TAG, "Ktor server started on port $port with Host check disabled")
+            Log.d(TAG, "Ktor server started on 0.0.0.0:$port with Host check disabled and long-connection support")
 
         } catch (e: Exception) {
             val errorMsg = when {
@@ -346,7 +345,7 @@ class McpServerService : Service() {
             throw Exception(errorMsg, e)
         }
     }
-    
+
     /**
      * 获取本地 IP 地址
      */

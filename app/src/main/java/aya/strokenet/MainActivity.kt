@@ -67,6 +67,9 @@ class MainActivity : ComponentActivity() {
             // 检查并请求权限
             checkAndRequestPermissions()
             
+            // 检查电池优化豁免（MCP Server 后台保活）
+            checkBatteryOptimization()
+            
             enableEdgeToEdge()
             setContent {
                 StrokeNetTheme {
@@ -323,6 +326,31 @@ class MainActivity : ComponentActivity() {
         if (!bleAdvertiser.isBluetoothEnabled()) {
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             enableBluetoothLauncher.launch(enableBtIntent)
+        }
+    }
+    
+    /**
+     * 检查并申请电池优化豁免
+     * 核心原因：防止 Android 在退到后台时强行切断 MCP Server 的网络连接
+     */
+    private fun checkBatteryOptimization() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = getSystemService(POWER_SERVICE) as android.os.PowerManager
+            if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    val intent = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = android.net.Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                    Toast.makeText(
+                        this,
+                        "为了让 MCP Server 在后台稳定运行，请允许应用无限制后台运行",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "无法打开电池优化设置", e)
+                }
+            }
         }
     }
     

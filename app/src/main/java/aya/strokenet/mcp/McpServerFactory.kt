@@ -22,7 +22,7 @@ fun createStrokeNetMcpServer(context: Context): Server {
     val server = Server(
         serverInfo = Implementation(
             name = "StrokeNet",
-            version = "1.1.0"
+            version = "2.2.0"
         ),
         options = ServerOptions(
             capabilities = ServerCapabilities(
